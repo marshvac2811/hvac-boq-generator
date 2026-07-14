@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>HVAC Bill of Quantities</title>
+<style>
+  :root{
+    --paper:#F7F5EF;
+    --ink:#1B2A4A;
+    --ink-soft:#425072;
+    --steel:#6B7A99;
+    --rule:#C9CDD6;
+    --rule-strong:#1B2A4A;
+    --accent:#C6621F;
+    --accent-soft:#F3E1D2;
+    --amber:#E8A33D;
+    --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px),
+      var(--paper);
+    color:var(--ink);
+    font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+    padding: 28px 16px 80px;
+  }
+  .sheet{
+    max-width: 1040px;
+    margin: 0 auto;
+    background: transparent;
+  }
+  /* ---------- Title block ---------- */
+  .titleblock{
+    border: 2px solid var(--rule-strong);
+    display:grid;
+    grid-template-columns: 1.4fr 1fr;
+    margin-bottom: 26px;
+  }
+  .tb-main{
+    padding: 20px 22px;
+    border-right: 2px solid var(--rule-strong);
+  }
+  .tb-eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .tb-title{
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin: 0 0 4px;
+  }
+  .tb-sub{
+    font-size: 13px;
+    color: var(--steel);
+    margin: 0;
+  }
+  .tb-fields{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .tb-field{
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--rule);
+    border-right: 1px solid var(--rule);
+  }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{
+    display:block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--steel);
+    margin-bottom: 4px;
+  }
+  .tb-field input{
+    width:100%;
+    border:none;
+    background:transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    outline:none;
+    font-family:'IBM Plex Mono', monospace;
+  }
+
+  /* ---------- Category tables ---------- */
+  .category{
+    margin-bottom: 22px;
+    border: 1.5px solid var(--rule-strong);
+    background: #FFFEFB;
+  }
+  .cat-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    background: var(--ink);
+    color: #FDFCF8;
+    padding: 9px 16px;
+  }
+  .cat-num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--amber);
+    font-weight: 700;
+  }
+  .cat-name{
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  table{
+    width:100%;
+    border-collapse: collapse;
+  }
+  thead th{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--steel);
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1.5px solid var(--rule-strong);
+    background: #F1EEE5;
+  }
+  thead th.num{ text-align:right; }
+  tbody td{
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  tbody tr:last-child td{ border-bottom: 1.5px solid var(--rule-strong); }
+  .col-sn{ width: 34px; color:var(--steel); font-family:'IBM Plex Mono', monospace; font-size:12px;}
+  .col-desc input{
+    width:100%; border:none; background:transparent; font-size:13px; color:var(--ink);
+    outline:none; font-family:inherit;
+  }
+  .col-unit{ width:64px; }
+  .col-unit input{
+    width:100%; border:none; background:transparent; font-size:12px; color:var(--steel);
+    text-align:center; outline:none; font-family:'IBM Plex Mono', monospace;
+  }
+  .col-num{ width:110px; text-align:right; }
+  .col-num input{
+    width:100%; border:none; border-bottom:1px dashed var(--rule);
+    background: var(--accent-soft); background:transparent;
+    text-align:right; font-family:'IBM Plex Mono', monospace; font-size:13px;
+    padding: 3px 4px; outline:none; color:var(--ink);
+  }
+  .col-num input:focus{ background: var(--accent-soft); border-bottom:1px solid var(--accent); }
+  .col-amt{
+    width:130px; text-align:right;
+    font-family:'IBM Plex Mono', monospace;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .col-del{ width:28px; text-align:center; }
+  .col-del button{
+    border:none; background:transparent; color:var(--rule-strong); opacity:0.35;
+    cursor:pointer; font-size:15px; line-height:1;
+  }
+  .col-del button:hover{ opacity:1; color:var(--accent); }
+
+  .cat-subtotal-row td{
+    background: #F1EEE5;
+    font-weight:700;
+    border-bottom:none;
+  }
+  .cat-subtotal-row .label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+  }
+
+  .add-row-btn{
+    display:block;
+    width:100%;
+    text-align:left;
+    padding: 7px 16px;
+    background:#FFFEFB;
+    border:none;
+    border-top: 1px dashed var(--rule);
+    color: var(--accent);
+    font-size:12px;
+    font-family:'IBM Plex Mono', monospace;
+    cursor:pointer;
+  }
+  .add-row-btn:hover{ background: var(--accent-soft); }
+
+  /* ---------- Summary block ---------- */
+  .summary{
+    border: 2px solid var(--rule-strong);
+    margin-top: 30px;
+    display:grid;
+    grid-template-columns: 1fr 340px;
+  }
+  .summary-note{
+    padding: 20px 22px;
+    border-right: 2px solid var(--rule-strong);
+    font-size: 12px;
+    color: var(--steel);
+    line-height:1.6;
+  }
+  .summary-note b{ color:var(--ink); }
+  .summary-calc{ padding: 4px 0; }
+  .sc-row{
+    display:flex; justify-content:space-between; align-items:center;
+    padding: 9px 18px;
+    border-bottom: 1px solid var(--rule);
+    font-size: 13px;
+  }
+  .sc-row .lbl{ color: var(--ink-soft); }
+  .sc-row .val{ font-family:'IBM Plex Mono', monospace; font-weight:600; }
+  .sc-row.pct .lbl{ display:flex; align-items:center; gap:6px; }
+  .sc-row.pct input{
+    width: 46px; border:none; border-bottom:1px dashed var(--accent);
+    background:transparent; font-family:'IBM Plex Mono', monospace;
+    font-size:12px; text-align:right; outline:none; color:var(--accent);
+  }
+  .sc-row.grand{
+    background: var(--ink);
+    color: #FDFCF8;
+    border-bottom:none;
+    padding: 16px 18px;
+  }
+  .sc-row.grand .lbl{ color:#FDFCF8; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; font-size:12px; }
+  .sc-row.grand .val{ font-size: 20px; color: var(--amber); }
+
+  /* ---------- Toolbar ---------- */
+  .toolbar{
+    max-width:1040px; margin: 0 auto 14px;
+    display:flex; justify-content:flex-end; gap:8px;
+  }
+  .toolbar button{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    padding: 8px 14px;
+    border: 1.5px solid var(--ink);
+    background: #FFFEFB;
+    color: var(--ink);
+    cursor:pointer;
+  }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{
+    max-width:1040px; margin: 18px auto 0;
+    font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace;
+    display:flex; justify-content:space-between;
+  }
+
+  @media print{
+    body{ background: #fff; padding:0; }
+    .toolbar{ display:none; }
+    .add-row-btn{ display:none; }
+    .col-del{ display:none; }
+    .category{ break-inside: avoid; }
+  }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields, .summary{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+    .summary-note{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button onclick="addBlankCategory()">+ Add Category</button>
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">Bill of Quantities</div>
+      <h1 class="tb-title">HVAC Works</h1>
+      <p class="tb-sub">Mechanical &amp; Electrical Services — Editable estimate sheet</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Project</label><input placeholder="Project name" /></div>
+      <div class="tb-field"><label>Client</label><input placeholder="Client / owner" /></div>
+      <div class="tb-field"><label>Ref No.</label><input placeholder="Tender / quote ref" /></div>
+      <div class="tb-field"><label>Date</label><input placeholder="DD / MM / YYYY" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+      <div class="tb-field"><label>Revision</label><input placeholder="Rev 00" /></div>
+    </div>
+  </div>
+
+  <div id="categories"></div>
+
+  <div class="summary">
+    <div class="summary-note">
+      <b>How this works —</b> Enter Qty and Rate for each item; Amount and every subtotal update automatically. Blank Qty/Rate rows are ignored in the total, so an unpriced item won't distort the estimate. Contingency, Overhead and Tax are applied on the works subtotal below — adjust the percentages to match your standard markup.
+    </div>
+    <div class="summary-calc">
+      <div class="sc-row"><span class="lbl">Subtotal — All Categories</span><span class="val" id="sum-subtotal">0.00</span></div>
+      <div class="sc-row pct"><span class="lbl">Contingency <input type="number" id="pct-contingency" value="5" min="0" step="0.5">%</span><span class="val" id="sum-contingency">0.00</span></div>
+      <div class="sc-row pct"><span class="lbl">Overhead &amp; Profit <input type="number" id="pct-overhead" value="10" min="0" step="0.5">%</span><span class="val" id="sum-overhead">0.00</span></div>
+      <div class="sc-row"><span class="lbl">Subtotal Before Tax</span><span class="val" id="sum-pretax">0.00</span></div>
+      <div class="sc-row pct"><span class="lbl">Tax / GST <input type="number" id="pct-tax" value="18" min="0" step="0.5">%</span><span class="val" id="sum-tax">0.00</span></div>
+      <div class="sc-row grand"><span class="lbl">Grand Total</span><span class="val" id="sum-grand">0.00</span></div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    <span>All quantities, rates and totals are estimates entered by the preparer.</span>
+    <span id="currency-note">Currency: ₹ (edit code to change symbol)</span>
+  </div>
+
+</div>
+
+<script>
+const CATEGORY_DATA = [
+  { name: "Equipment", items: [
+    ["Chiller unit — air/water cooled (state capacity)", "Nos"],
+    ["VRF outdoor unit", "Nos"],
+    ["VRF indoor unit — cassette / ducted / hi-wall", "Nos"],
+    ["Air Handling Unit (AHU)", "Nos"],
+    ["Fan Coil Unit (FCU)", "Nos"],
+    ["Package / split AC unit", "Nos"],
+    ["Exhaust / fresh air fan", "Nos"],
+    ["Cooling tower", "Nos"],
+  ]},
+  { name: "Ductwork & Accessories", items: [
+    ["GI sheet metal ductwork — supply air", "Kg"],
+    ["GI sheet metal ductwork — return air", "Kg"],
+    ["Flexible ductwork, insulated", "Rmt"],
+    ["Volume control damper (VCD)", "Nos"],
+    ["Fire / fire-smoke damper", "Nos"],
+    ["Supply air diffuser", "Nos"],
+    ["Return air grille", "Nos"],
+    ["Fresh air louver", "Nos"],
+  ]},
+  { name: "Piping & Accessories", items: [
+    ["Chilled water piping — MS/GI (state size)", "Rmt"],
+    ["Refrigerant piping — copper, insulated", "Rmt"],
+    ["Condensate drain piping — uPVC", "Rmt"],
+    ["Butterfly / ball / gate valve", "Nos"],
+    ["Y-strainer", "Nos"],
+    ["Flexible connector", "Nos"],
+  ]},
+  { name: "Insulation", items: [
+    ["Duct insulation — nitrile rubber / XLPE", "Sqm"],
+    ["Chilled water pipe insulation", "Rmt"],
+    ["Refrigerant pipe insulation", "Rmt"],
+    ["Aluminium cladding over insulation", "Sqm"],
+  ]},
+  { name: "Electrical", items: [
+    ["Power cabling to equipment", "Rmt"],
+    ["Control / BMS cabling", "Rmt"],
+    ["MCB / MCCB distribution panel", "Nos"],
+    ["Earthing — equipment", "Set"],
+    ["VFD (variable frequency drive)", "Nos"],
+  ]},
+  { name: "Civil & Structural", items: [
+    ["Equipment foundation / plinth", "Nos"],
+    ["Support structure / hangers", "Kg"],
+    ["Vibration isolators", "Set"],
+    ["Cutting & making good — wall / slab openings", "Nos"],
+  ]},
+  { name: "Testing & Commissioning", items: [
+    ["Testing, Adjusting & Balancing (TAB)", "LS"],
+    ["Performance / trial run testing", "LS"],
+    ["Commissioning & handover documentation", "LS"],
+    ["As-built drawings & O&M manuals", "LS"],
+  ]},
+];
+
+let catCounter = 0;
+let rowCounter = 0;
+
+function fmt(n){
+  return n.toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+function buildRow(desc, unit){
+  rowCounter++;
+  const rid = 'r' + rowCounter;
+  const tr = document.createElement('tr');
+  tr.dataset.rowId = rid;
+  tr.innerHTML = `
+    <td class="col-sn"></td>
+    <td class="col-desc"><input type="text" value="${desc}"></td>
+    <td class="col-unit"><input type="text" value="${unit}"></td>
+    <td class="col-num"><input type="number" class="qty-input" min="0" step="any" placeholder="—"></td>
+    <td class="col-num"><input type="number" class="rate-input" min="0" step="any" placeholder="—"></td>
+    <td class="col-amt" data-amt>0.00</td>
+    <td class="col-del"><button title="Remove row" onclick="removeRow(this)">✕</button></td>
+  `;
+  tr.querySelectorAll('.qty-input, .rate-input').forEach(inp => {
+    inp.addEventListener('input', recalcAll);
+  });
+  return tr;
+}
+
+function buildCategory(catName, items){
+  catCounter++;
+  const wrap = document.createElement('div');
+  wrap.className = 'category';
+  wrap.dataset.catId = 'c' + catCounter;
+  wrap.innerHTML = `
+    <div class="cat-head">
+      <span class="cat-num">${String(catCounter).padStart(2,'0')}</span>
+      <span class="cat-name" contenteditable="true">${catName}</span>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sn">#</th>
+          <th>Description</th>
+          <th class="num">Unit</th>
+          <th class="num">Qty</th>
+          <th class="num">Rate</th>
+          <th class="num">Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr class="cat-subtotal-row">
+          <td colspan="5" class="label" style="text-align:right;">Category Subtotal</td>
+          <td class="col-amt" data-cat-subtotal>0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button class="add-row-btn" onclick="addRowToCategory(this)">+ Add line item</button>
+  `;
+  const tbody = wrap.querySelector('tbody');
+  items.forEach(([desc, unit]) => tbody.appendChild(buildRow(desc, unit)));
+  renumber(wrap);
+  return wrap;
+}
+
+function renumber(catEl){
+  catEl.querySelectorAll('tbody tr').forEach((tr, i) => {
+    tr.querySelector('.col-sn').textContent = i + 1;
+  });
+}
+
+function addRowToCategory(btn){
+  const catEl = btn.closest('.category');
+  const tbody = catEl.querySelector('tbody');
+  tbody.appendChild(buildRow('New item', 'Nos'));
+  renumber(catEl);
+}
+
+function removeRow(btn){
+  const tr = btn.closest('tr');
+  const catEl = btn.closest('.category');
+  tr.remove();
+  renumber(catEl);
+  recalcAll();
+}
+
+function addBlankCategory(){
+  const container = document.getElementById('categories');
+  container.appendChild(buildCategory('New Category', [["New item","Nos"]]));
+}
+
+function recalcAll(){
+  let grandSubtotal = 0;
+  document.querySelectorAll('.category').forEach(catEl => {
+    let catSum = 0;
+    catEl.querySelectorAll('tbody tr').forEach(tr => {
+      const qty = parseFloat(tr.querySelector('.qty-input').value);
+      const rate = parseFloat(tr.querySelector('.rate-input').value);
+      let amt = 0;
+      if(!isNaN(qty) && !isNaN(rate)){
+        amt = qty * rate;
+      }
+      tr.querySelector('[data-amt]').textContent = fmt(amt);
+      catSum += amt;
+    });
+    catEl.querySelector('[data-cat-subtotal]').textContent = fmt(catSum);
+    grandSubtotal += catSum;
+  });
+
+  const contPct = parseFloat(document.getElementById('pct-contingency').value) || 0;
+  const ohPct = parseFloat(document.getElementById('pct-overhead').value) || 0;
+  const taxPct = parseFloat(document.getElementById('pct-tax').value) || 0;
+
+  const contingency = grandSubtotal * contPct / 100;
+  const overhead = grandSubtotal * ohPct / 100;
+  const preTax = grandSubtotal + contingency + overhead;
+  const tax = preTax * taxPct / 100;
+  const grand = preTax + tax;
+
+  document.getElementById('sum-subtotal').textContent = fmt(grandSubtotal);
+  document.getElementById('sum-contingency').textContent = fmt(contingency);
+  document.getElementById('sum-overhead').textContent = fmt(overhead);
+  document.getElementById('sum-pretax').textContent = fmt(preTax);
+  document.getElementById('sum-tax').textContent = fmt(tax);
+  document.getElementById('sum-grand').textContent = fmt(grand);
+}
+
+// Init
+const container = document.getElementById('categories');
+CATEGORY_DATA.forEach(cat => container.appendChild(buildCategory(cat.name, cat.items)));
+['pct-contingency','pct-overhead','pct-tax'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcAll);
+});
+recalcAll();
+</script>
+
+</body>
+</html>
