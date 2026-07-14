@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pump Head Calculator</title>
+<style>
+  :root{
+    --paper:#F7F5EF;
+    --ink:#1B2A4A;
+    --ink-soft:#425072;
+    --steel:#6B7A99;
+    --rule:#C9CDD6;
+    --rule-strong:#1B2A4A;
+    --accent:#C6621F;
+    --accent-soft:#F3E1D2;
+    --amber:#E8A33D;
+    --good:#2E7D5B;
+    --warn:#B8452F;
+    --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px),
+      var(--paper);
+    color:var(--ink);
+    font-family: -apple-system, 'Segoe UI', Inter, sans-serif;
+    padding: 28px 16px 80px;
+  }
+  .sheet{ max-width: 1040px; margin: 0 auto; }
+
+  .titleblock{
+    border: 2px solid var(--rule-strong);
+    display:grid;
+    grid-template-columns: 1.4fr 1fr;
+    margin-bottom: 26px;
+  }
+  .tb-main{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); }
+  .tb-eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px;
+    color: var(--accent); text-transform: uppercase; margin-bottom: 6px;
+  }
+  .tb-title{ font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; }
+  .tb-sub{ font-size: 13px; color: var(--steel); margin: 0; }
+  .tb-fields{ display:grid; grid-template-columns: 1fr 1fr; }
+  .tb-field{ padding: 10px 16px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{
+    display:block; font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--steel); margin-bottom: 4px;
+  }
+  .tb-field input{
+    width:100%; border:none; background:transparent; font-size: 13px; font-weight: 600;
+    color: var(--ink); outline:none; font-family:'IBM Plex Mono', monospace;
+  }
+
+  .section{
+    margin-bottom: 22px;
+    border: 1.5px solid var(--rule-strong);
+    background: #FFFEFB;
+  }
+  .sec-head{
+    display:flex; align-items:baseline; gap:10px;
+    background: var(--ink); color: #FDFCF8; padding: 9px 16px;
+  }
+  .sec-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); font-weight: 700; }
+  .sec-name{ font-size: 14px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .sec-body{ padding: 16px 18px; }
+
+  .input-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+  }
+  .field label{
+    display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--steel); margin-bottom: 5px;
+  }
+  .field input, .field select{
+    width:100%; padding: 8px 9px; border: 1px solid var(--rule); background: var(--paper);
+    font-size: 13px; color: var(--ink); font-family:'IBM Plex Mono', monospace; outline:none;
+  }
+  .field input:focus, .field select:focus{ border-color: var(--accent); background: #fff; }
+  .field .unit{ color: var(--steel); font-size:11px; margin-left:4px; }
+
+  .results-strip{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--rule-strong);
+    border: 1.5px solid var(--rule-strong);
+    margin-top: 16px;
+  }
+  .result-box{ background:#FFFEFB; padding: 10px 14px; }
+  .result-box .rlabel{
+    font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--steel); margin-bottom: 4px;
+  }
+  .result-box .rvalue{ font-family:'IBM Plex Mono', monospace; font-size: 17px; font-weight:700; color: var(--ink); }
+  .result-box .rvalue small{ font-size:11px; font-weight:400; color:var(--steel); }
+
+  .badge{
+    display:inline-block; font-family:'IBM Plex Mono', monospace; font-size: 10px;
+    letter-spacing:0.5px; padding: 3px 8px; margin-top:10px; border:1px solid;
+  }
+  .badge.good{ color: var(--good); border-color: var(--good); background: rgba(46,125,91,0.08); }
+  .badge.warn{ color: var(--warn); border-color: var(--warn); background: rgba(184,69,47,0.08); }
+
+  table{ width:100%; border-collapse: collapse; }
+  thead th{
+    font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--steel); text-align: left; padding: 8px 10px; border-bottom: 1.5px solid var(--rule-strong);
+    background: #F1EEE5;
+  }
+  thead th.num{ text-align:right; }
+  tbody td{ padding: 6px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; vertical-align: middle; }
+  .col-sn{ width: 32px; color:var(--steel); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .col-desc input{ width:100%; border:none; background:transparent; font-size:13px; color:var(--ink); outline:none; font-family:inherit; }
+  .col-num{ width:110px; text-align:right; }
+  .col-num input{
+    width:100%; border:none; border-bottom:1px dashed var(--rule); background:transparent;
+    text-align:right; font-family:'IBM Plex Mono', monospace; font-size:13px; padding: 3px 4px; outline:none; color:var(--ink);
+  }
+  .col-num input:focus{ background: var(--accent-soft); border-bottom:1px solid var(--accent); }
+  .col-amt{ width:120px; text-align:right; font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--ink); }
+  .col-del{ width:28px; text-align:center; }
+  .col-del button{ border:none; background:transparent; color:var(--rule-strong); opacity:0.35; cursor:pointer; font-size:15px; line-height:1; }
+  .col-del button:hover{ opacity:1; color:var(--accent); }
+  .subtotal-row td{ background: #F1EEE5; font-weight:700; border-bottom:none; }
+  .subtotal-row .label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-soft); }
+  .add-row-btn{
+    display:block; width:100%; text-align:left; padding: 7px 16px; background:#FFFEFB; border:none;
+    border-top: 1px dashed var(--rule); color: var(--accent); font-size:12px; font-family:'IBM Plex Mono', monospace; cursor:pointer;
+  }
+  .add-row-btn:hover{ background: var(--accent-soft); }
+
+  .summary{ border: 2px solid var(--rule-strong); margin-top: 30px; display:grid; grid-template-columns: 1fr 340px; }
+  .summary-note{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); font-size: 12px; color: var(--steel); line-height:1.6; }
+  .summary-note b{ color:var(--ink); }
+  .summary-calc{ padding: 4px 0; }
+  .sc-row{ display:flex; justify-content:space-between; align-items:center; padding: 9px 18px; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  .sc-row .lbl{ color: var(--ink-soft); }
+  .sc-row .val{ font-family:'IBM Plex Mono', monospace; font-weight:600; }
+  .sc-row.pct .lbl{ display:flex; align-items:center; gap:6px; }
+  .sc-row.pct input{
+    width: 46px; border:none; border-bottom:1px dashed var(--accent); background:transparent;
+    font-family:'IBM Plex Mono', monospace; font-size:12px; text-align:right; outline:none; color:var(--accent);
+  }
+  .sc-row.grand{ background: var(--ink); color: #FDFCF8; border-bottom:none; padding: 16px 18px; flex-direction:column; align-items:flex-start; gap:8px; }
+  .sc-row.grand .lbl{ color:#FDFCF8; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; font-size:12px; }
+  .sc-row.grand .val{ font-size: 26px; color: var(--amber); }
+  .grand-alt{ display:flex; gap:16px; font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--steel); }
+  .grand-alt span b{ color:#FDFCF8; }
+
+  .toolbar{ max-width:1040px; margin: 0 auto 14px; display:flex; justify-content:flex-end; gap:8px; }
+  .toolbar button{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase;
+    padding: 8px 14px; border: 1.5px solid var(--ink); background: #FFFEFB; color: var(--ink); cursor:pointer;
+  }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{ max-width:1040px; margin: 18px auto 0; font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace; line-height:1.6; }
+
+  @media print{
+    body{ background:#fff; padding:0; }
+    .toolbar{ display:none; }
+    .add-row-btn{ display:none; }
+    .col-del{ display:none; }
+    .section{ break-inside: avoid; }
+  }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields, .summary{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+    .summary-note{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">Pump Selection Worksheet</div>
+      <h1 class="tb-title">Pump Head Calculator</h1>
+      <p class="tb-sub">Total Dynamic Head (TDH) — Darcy-Weisbach method</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Project</label><input placeholder="Project name" /></div>
+      <div class="tb-field"><label>Pump Tag</label><input placeholder="e.g. CHW-P-01" /></div>
+      <div class="tb-field"><label>Service</label><input placeholder="e.g. Chilled water" /></div>
+      <div class="tb-field"><label>Date</label><input placeholder="DD / MM / YYYY" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+      <div class="tb-field"><label>Fluid Temp</label><input id="fluidTemp" type="number" value="7" placeholder="°C" /></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: FLOW & PIPE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">01</span><span class="sec-name">Flow &amp; Pipe Data</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Design Flow Rate</label><input id="flow" type="number" step="any" placeholder="0" value="20"><span class="unit">m³/hr</span></div>
+        <div class="field"><label>Pipe Internal Diameter</label><input id="dia" type="number" step="any" placeholder="0" value="80"><span class="unit">mm</span></div>
+        <div class="field">
+          <label>Pipe Material</label>
+          <select id="material" onchange="onMaterialChange()">
+            <option value="0.15">GI (galvanised steel)</option>
+            <option value="0.05">MS / CS (black steel)</option>
+            <option value="0.0015">Copper</option>
+            <option value="0.0015" selected>uPVC / PVC</option>
+            <option value="0.007">HDPE</option>
+            <option value="custom">Custom roughness…</option>
+          </select>
+        </div>
+        <div class="field"><label>Roughness (ε)</label><input id="roughness" type="number" step="any" value="0.0015" disabled><span class="unit">mm</span></div>
+        <div class="field"><label>Straight Pipe Length</label><input id="straightLen" type="number" step="any" placeholder="0" value="60"><span class="unit">m</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box"><div class="rlabel">Flow Velocity</div><div class="rvalue" id="out-velocity">–<small> m/s</small></div></div>
+        <div class="result-box"><div class="rlabel">Reynolds No.</div><div class="rvalue" id="out-re">–</div></div>
+        <div class="result-box"><div class="rlabel">Friction Factor (f)</div><div class="rvalue" id="out-f">–</div></div>
+        <div class="result-box"><div class="rlabel">Friction Loss</div><div class="rvalue" id="out-hf-per100">–<small> m/100m</small></div></div>
+      </div>
+      <div id="velocity-badge"></div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: FITTINGS -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Fittings &amp; Valves</span></div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sn">#</th>
+          <th>Fitting</th>
+          <th class="num">L/D Ratio</th>
+          <th class="num">Qty</th>
+          <th class="num">Equiv. Length (m)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="fittings-body"></tbody>
+      <tfoot>
+        <tr class="subtotal-row">
+          <td colspan="4" class="label" style="text-align:right;">Total Equivalent Length — Fittings</td>
+          <td class="col-amt" id="fittings-subtotal">0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button class="add-row-btn" onclick="addFittingRow()">+ Add fitting</button>
+  </div>
+
+  <!-- SECTION 3: STATIC HEAD -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">03</span><span class="sec-name">Static Head</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Elevation Difference</label><input id="staticHead" type="number" step="any" placeholder="0" value="8"><span class="unit">m</span></div>
+      </div>
+      <div class="footnote" style="margin:10px 0 0;">Height the fluid is lifted from suction level to the highest discharge point. Enter 0 for a closed loop (e.g. chilled water) where static head cancels out over the circuit; enter the actual lift for open systems (e.g. cooling tower, domestic water boost).</div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: EQUIPMENT LOSSES -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">04</span><span class="sec-name">Equipment &amp; Component Losses</span></div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sn">#</th>
+          <th>Component</th>
+          <th class="num">Head Loss (m)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="equip-body"></tbody>
+      <tfoot>
+        <tr class="subtotal-row">
+          <td colspan="2" class="label" style="text-align:right;">Total Component Losses</td>
+          <td class="col-amt" id="equip-subtotal">0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button class="add-row-btn" onclick="addEquipRow()">+ Add component</button>
+  </div>
+
+  <div class="summary">
+    <div class="summary-note">
+      <b>How this works —</b> Friction loss uses the Darcy-Weisbach equation with the Swamee-Jain approximation for the friction factor, at an assumed kinematic viscosity for water near the fluid temperature entered above. Equipment losses (coils, valves, heat exchangers, strainers) should come from the manufacturer's pressure-drop data at your design flow, entered directly in metres. Add a design margin for uncertainty in fittings takeoff and future system changes.
+    </div>
+    <div class="summary-calc">
+      <div class="sc-row"><span class="lbl">Friction Head Loss (pipe + fittings)</span><span class="val" id="sum-friction">0.00 m</span></div>
+      <div class="sc-row"><span class="lbl">Static Head</span><span class="val" id="sum-static">0.00 m</span></div>
+      <div class="sc-row"><span class="lbl">Equipment / Component Losses</span><span class="val" id="sum-equip">0.00 m</span></div>
+      <div class="sc-row"><span class="lbl">Subtotal Head</span><span class="val" id="sum-subtotal">0.00 m</span></div>
+      <div class="sc-row pct"><span class="lbl">Design Margin <input type="number" id="pct-margin" value="10" min="0" step="1">%</span><span class="val" id="sum-margin">0.00 m</span></div>
+      <div class="sc-row grand">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span class="lbl">Total Dynamic Head</span><span class="val" id="sum-tdh">0.00 m</span>
+        </div>
+        <div class="grand-alt">
+          <span><b id="sum-kpa">0</b> kPa</span>
+          <span><b id="sum-bar">0</b> bar</span>
+          <span><b id="sum-ft">0</b> ft</span>
+          <span><b id="sum-psi">0</b> psi</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    Use the resulting TDH and design flow together as the duty point on the pump manufacturer's performance curve to select the pump and impeller trim.
+  </div>
+
+</div>
+
+<script>
+const FITTING_DEFAULTS = [
+  ["90° standard elbow", 30],
+  ["90° long radius elbow", 20],
+  ["45° elbow", 16],
+  ["Tee — through flow", 20],
+  ["Tee — branch flow", 60],
+  ["Gate valve (full open)", 8],
+  ["Butterfly valve", 45],
+  ["Check valve (swing)", 135],
+  ["Y-strainer", 250],
+];
+
+const EQUIP_DEFAULTS = [
+  ["Chiller evaporator", 0],
+  ["AHU/FCU coil", 0],
+  ["2-way control valve", 0],
+  ["Balancing valve", 0],
+  ["Plate heat exchanger", 0],
+];
+
+let rowCounter = 0;
+
+function fmt(n){ return (isFinite(n) ? n : 0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+function buildFittingRow(name, ldRatio){
+  rowCounter++;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="col-sn"></td>
+    <td class="col-desc"><input type="text" value="${name}"></td>
+    <td class="col-num"><input type="number" class="ld-input" min="0" step="any" value="${ldRatio}"></td>
+    <td class="col-num"><input type="number" class="qty-input" min="0" step="1" placeholder="0"></td>
+    <td class="col-amt" data-eqlen>0.00</td>
+    <td class="col-del"><button onclick="removeRow(this,'fittings-body')">✕</button></td>
+  `;
+  tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recalcAll));
+  return tr;
+}
+
+function buildEquipRow(name, val){
+  rowCounter++;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="col-sn"></td>
+    <td class="col-desc"><input type="text" value="${name}"></td>
+    <td class="col-num"><input type="number" class="loss-input" min="0" step="any" value="${val || ''}" placeholder="0"></td>
+    <td class="col-del"><button onclick="removeRow(this,'equip-body')">✕</button></td>
+  `;
+  tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recalcAll));
+  return tr;
+}
+
+function renumber(tbodyId){
+  document.querySelectorAll('#' + tbodyId + ' tr').forEach((tr,i) => tr.querySelector('.col-sn').textContent = i+1);
+}
+
+function addFittingRow(){
+  document.getElementById('fittings-body').appendChild(buildFittingRow('New fitting', 20));
+  renumber('fittings-body');
+}
+function addEquipRow(){
+  document.getElementById('equip-body').appendChild(buildEquipRow('New component', 0));
+  renumber('equip-body');
+}
+function removeRow(btn, tbodyId){
+  btn.closest('tr').remove();
+  renumber(tbodyId);
+  recalcAll();
+}
+
+function onMaterialChange(){
+  const sel = document.getElementById('material');
+  const roughnessInput = document.getElementById('roughness');
+  if(sel.value === 'custom'){
+    roughnessInput.disabled = false;
+    roughnessInput.focus();
+  } else {
+    roughnessInput.disabled = true;
+    roughnessInput.value = sel.value;
+  }
+  recalcAll();
+}
+
+function recalcAll(){
+  // ---- Pipe / friction ----
+  const Q_m3hr = parseFloat(document.getElementById('flow').value) || 0;
+  const D_mm = parseFloat(document.getElementById('dia').value) || 0;
+  const roughness_mm = parseFloat(document.getElementById('roughness').value) || 0;
+  const straightLen = parseFloat(document.getElementById('straightLen').value) || 0;
+
+  const D = D_mm / 1000;              // m
+  const eps = roughness_mm / 1000;    // m
+  const Q = Q_m3hr / 3600;            // m3/s
+  const g = 9.81;
+  const nu = 1.0e-6;                  // kinematic viscosity of water, m2/s (approx)
+
+  let V = 0, Re = 0, f = 0, hf_per_m = 0;
+  if(D > 0){
+    const area = Math.PI / 4 * D * D;
+    V = area > 0 ? Q / area : 0;
+    Re = (nu > 0) ? (V * D / nu) : 0;
+    if(Re > 0 && D > 0){
+      const term = (eps / (3.7 * D)) + (5.74 / Math.pow(Re, 0.9));
+      if(term > 0){
+        f = 0.25 / Math.pow(Math.log10(term), 2);
+      }
+    }
+  }
+
+  // ---- Fittings equivalent length ----
+  let fittingsLenTotal = 0;
+  document.querySelectorAll('#fittings-body tr').forEach(tr => {
+    const ld = parseFloat(tr.querySelector('.ld-input').value) || 0;
+    const qty = parseFloat(tr.querySelector('.qty-input').value) || 0;
+    const eqLen = ld * D * qty;
+    tr.querySelector('[data-eqlen]').textContent = fmt(eqLen);
+    fittingsLenTotal += eqLen;
+  });
+  document.getElementById('fittings-subtotal').textContent = fmt(fittingsLenTotal);
+
+  const totalLen = straightLen + fittingsLenTotal;
+  let hf = 0;
+  if(D > 0){
+    hf = f * (totalLen / D) * (V * V) / (2 * g);
+  }
+  hf_per_m = (D > 0 && totalLen > 0) ? (hf / totalLen) * 100 : 0;
+
+  document.getElementById('out-velocity').innerHTML = fmt(V) + '<small> m/s</small>';
+  document.getElementById('out-re').textContent = Re ? Math.round(Re).toLocaleString('en-IN') : '–';
+  document.getElementById('out-f').textContent = f ? f.toFixed(4) : '–';
+  document.getElementById('out-hf-per100').innerHTML = fmt(hf_per_m) + '<small> m/100m</small>';
+
+  const badgeEl = document.getElementById('velocity-badge');
+  if(V > 0){
+    if(V < 0.6){
+      badgeEl.innerHTML = '<span class="badge warn">Velocity low — oversized pipe, sediment risk</span>';
+    } else if(V > 3.0){
+      badgeEl.innerHTML = '<span class="badge warn">Velocity high — noise / erosion risk above ~3 m/s</span>';
+    } else if(V >= 1.0 && V <= 2.5){
+      badgeEl.innerHTML = '<span class="badge good">Within typical CHW design range (1.0–2.5 m/s)</span>';
+    } else {
+      badgeEl.innerHTML = '<span class="badge warn">Outside typical 1.0–2.5 m/s design range — check pipe size</span>';
+    }
+  } else {
+    badgeEl.innerHTML = '';
+  }
+
+  // ---- Equipment losses ----
+  let equipTotal = 0;
+  document.querySelectorAll('#equip-body tr').forEach(tr => {
+    const loss = parseFloat(tr.querySelector('.loss-input').value) || 0;
+    equipTotal += loss;
+  });
+  document.getElementById('equip-subtotal').textContent = fmt(equipTotal);
+
+  // ---- Static head ----
+  const staticHead = parseFloat(document.getElementById('staticHead').value) || 0;
+
+  // ---- Summary ----
+  const subtotal = hf + staticHead + equipTotal;
+  const marginPct = parseFloat(document.getElementById('pct-margin').value) || 0;
+  const marginVal = subtotal * marginPct / 100;
+  const tdh = subtotal + marginVal;
+
+  document.getElementById('sum-friction').textContent = fmt(hf) + ' m';
+  document.getElementById('sum-static').textContent = fmt(staticHead) + ' m';
+  document.getElementById('sum-equip').textContent = fmt(equipTotal) + ' m';
+  document.getElementById('sum-subtotal').textContent = fmt(subtotal) + ' m';
+  document.getElementById('sum-margin').textContent = fmt(marginVal) + ' m';
+  document.getElementById('sum-tdh').textContent = fmt(tdh) + ' m';
+
+  const kpa = tdh * 9.81;
+  document.getElementById('sum-kpa').textContent = fmt(kpa);
+  document.getElementById('sum-bar').textContent = fmt(kpa / 100);
+  document.getElementById('sum-ft').textContent = fmt(tdh * 3.28084);
+  document.getElementById('sum-psi').textContent = fmt(kpa * 0.145038);
+}
+
+// Init
+FITTING_DEFAULTS.forEach(([name, ld]) => document.getElementById('fittings-body').appendChild(buildFittingRow(name, ld)));
+EQUIP_DEFAULTS.forEach(([name, val]) => document.getElementById('equip-body').appendChild(buildEquipRow(name, val)));
+renumber('fittings-body');
+renumber('equip-body');
+
+['flow','dia','roughness','straightLen','staticHead','pct-margin'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcAll);
+});
+document.getElementById('material').addEventListener('change', recalcAll);
+
+recalcAll();
+</script>
+
+</body>
+</html>
