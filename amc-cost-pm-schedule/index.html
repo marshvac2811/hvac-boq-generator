@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AMC Cost & PM Schedule Generator</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --ink:#1B2A4A; --ink-soft:#425072; --steel:#6B7A99;
+    --rule:#C9CDD6; --rule-strong:#1B2A4A; --accent:#C6621F; --accent-soft:#F3E1D2;
+    --amber:#E8A33D; --good:#2E7D5B; --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px), var(--paper);
+    color:var(--ink); font-family: -apple-system, 'Segoe UI', Inter, sans-serif; padding: 28px 16px 80px;
+  }
+  .sheet{ max-width: 1100px; margin: 0 auto; }
+  .titleblock{ border: 2px solid var(--rule-strong); display:grid; grid-template-columns: 1.4fr 1fr; margin-bottom: 26px; }
+  .tb-main{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); }
+  .tb-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .tb-title{ font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; }
+  .tb-sub{ font-size: 13px; color: var(--steel); margin: 0; }
+  .tb-fields{ display:grid; grid-template-columns: 1fr 1fr; }
+  .tb-field{ padding: 10px 16px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .tb-field input, .tb-field select{ width:100%; border:none; background:transparent; font-size: 13px; font-weight: 600; color: var(--ink); outline:none; font-family:'IBM Plex Mono', monospace; }
+
+  .section{ margin-bottom: 22px; border: 1.5px solid var(--rule-strong); background: #FFFEFB; }
+  .sec-head{ display:flex; align-items:baseline; gap:10px; background: var(--ink); color: #FDFCF8; padding: 9px 16px; }
+  .sec-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); font-weight: 700; }
+  .sec-name{ font-size: 14px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .sec-body{ padding: 16px 18px; }
+
+  .input-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .field input, .field select{ width:100%; padding: 8px 9px; border: 1px solid var(--rule); background: var(--paper); font-size: 13px; color: var(--ink); font-family:'IBM Plex Mono', monospace; outline:none; }
+  .field input:focus, .field select:focus{ border-color: var(--accent); background: #fff; }
+
+  table{ width:100%; border-collapse: collapse; }
+  thead th{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); text-align: left; padding: 8px 10px; border-bottom: 1.5px solid var(--rule-strong); background: #F1EEE5; }
+  thead th.num{ text-align:right; }
+  thead th.ctr{ text-align:center; }
+  tbody td{ padding: 6px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; vertical-align: middle; }
+  .col-sn{ width: 32px; color:var(--steel); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .col-desc input{ width:100%; border:none; background:transparent; font-size:13px; color:var(--ink); outline:none; font-family:inherit; }
+  .col-num{ width:100px; text-align:right; }
+  .col-num input{ width:100%; border:none; border-bottom:1px dashed var(--rule); background:transparent; text-align:right; font-family:'IBM Plex Mono', monospace; font-size:13px; padding: 3px 4px; outline:none; color:var(--ink); }
+  .col-num input:focus{ background: var(--accent-soft); border-bottom:1px solid var(--accent); }
+  .col-amt{ width:120px; text-align:right; font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--ink); }
+  .col-del{ width:28px; text-align:center; }
+  .col-del button{ border:none; background:transparent; color:var(--rule-strong); opacity:0.35; cursor:pointer; font-size:15px; line-height:1; }
+  .col-del button:hover{ opacity:1; color:var(--accent); }
+  .col-freq select{ width:100%; padding:4px 6px; border:1px solid var(--rule); background:var(--paper); font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink); }
+  .subtotal-row td{ background: #F1EEE5; font-weight:700; border-bottom:none; }
+  .subtotal-row .label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-soft); }
+  .add-row-btn{ display:block; width:100%; text-align:left; padding: 7px 16px; background:#FFFEFB; border:none; border-top: 1px dashed var(--rule); color: var(--accent); font-size:12px; font-family:'IBM Plex Mono', monospace; cursor:pointer; }
+  .add-row-btn:hover{ background: var(--accent-soft); }
+
+  .month-cell{ width:30px; text-align:center; padding:6px 2px; }
+  .month-dot{ width:14px; height:14px; border-radius:50%; margin:0 auto; background: var(--rule); }
+  .month-dot.on{ background: var(--accent); }
+  thead th.month-head{ text-align:center; width:30px; padding:8px 2px; }
+
+  .summary{ border: 2px solid var(--rule-strong); margin-top: 30px; display:grid; grid-template-columns: 1fr 340px; }
+  .summary-note{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); font-size: 12px; color: var(--steel); line-height:1.6; }
+  .summary-note b{ color:var(--ink); }
+  .summary-calc{ padding: 4px 0; }
+  .sc-row{ display:flex; justify-content:space-between; align-items:center; padding: 9px 18px; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  .sc-row .lbl{ color: var(--ink-soft); }
+  .sc-row .val{ font-family:'IBM Plex Mono', monospace; font-weight:600; }
+  .sc-row.pct .lbl{ display:flex; align-items:center; gap:6px; }
+  .sc-row.pct input{ width: 46px; border:none; border-bottom:1px dashed var(--accent); background:transparent; font-family:'IBM Plex Mono', monospace; font-size:12px; text-align:right; outline:none; color:var(--accent); }
+  .sc-row.grand{ background: var(--ink); color: #FDFCF8; border-bottom:none; padding: 16px 18px; flex-direction:column; align-items:flex-start; gap:8px; }
+  .sc-row.grand .lbl{ color:#FDFCF8; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; font-size:12px; }
+  .sc-row.grand .val{ font-size: 24px; color: var(--amber); }
+  .grand-alt{ display:flex; gap:16px; font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--steel); }
+  .grand-alt span b{ color:#FDFCF8; }
+
+  .toolbar{ max-width:1100px; margin: 0 auto 14px; display:flex; justify-content:flex-end; gap:8px; }
+  .toolbar button{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding: 8px 14px; border: 1.5px solid var(--ink); background: #FFFEFB; color: var(--ink); cursor:pointer; }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{ max-width:1100px; margin: 18px auto 0; font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace; line-height:1.6; }
+  .table-scroll{ overflow-x:auto; }
+
+  @media print{
+    body{ background:#fff; padding:0; } .toolbar{ display:none; } .add-row-btn{ display:none; } .col-del{ display:none; } .section{ break-inside: avoid; }
+  }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields, .summary{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+    .summary-note{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">AMC Proposal Worksheet</div>
+      <h1 class="tb-title">AMC Cost &amp; PM Schedule</h1>
+      <p class="tb-sub">Annual maintenance pricing and preventive maintenance calendar</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Client</label><input placeholder="Client / site name" /></div>
+      <div class="tb-field"><label>Contract Period</label><input placeholder="e.g. 1 Apr 2026 – 31 Mar 2027" /></div>
+      <div class="tb-field">
+        <label>AMC Type</label>
+        <select id="amcType">
+          <option>Comprehensive (parts + labour)</option>
+          <option>Non-comprehensive (labour only)</option>
+        </select>
+      </div>
+      <div class="tb-field">
+        <label>Visit Frequency</label>
+        <select id="visitFrequency">
+          <option value="12">Monthly</option>
+          <option value="6">Bi-monthly</option>
+          <option value="4" selected>Quarterly</option>
+          <option value="2">Half-yearly</option>
+        </select>
+      </div>
+      <div class="tb-field"><label>Response Time (breakdown)</label><input placeholder="e.g. within 4 hours" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: EQUIPMENT & PRICING -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">01</span><span class="sec-name">Equipment &amp; AMC Pricing</span></div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sn">#</th>
+          <th>Equipment</th>
+          <th class="num">Qty</th>
+          <th class="num">AMC Rate (₹/unit/yr)</th>
+          <th class="num">Amount (₹/yr)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="equip-body"></tbody>
+      <tfoot>
+        <tr class="subtotal-row">
+          <td colspan="4" class="label" style="text-align:right;">Total Annual AMC Value</td>
+          <td class="col-amt" id="equip-subtotal">0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button class="add-row-btn" onclick="addEquipRow()">+ Add equipment</button>
+  </div>
+
+  <!-- SECTION 2: PM SCHEDULE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Preventive Maintenance Schedule</span></div>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sn">#</th>
+          <th style="min-width:220px;">Task</th>
+          <th class="ctr" style="width:110px;">Frequency</th>
+          <th class="month-head">J</th><th class="month-head">F</th><th class="month-head">M</th>
+          <th class="month-head">A</th><th class="month-head">M</th><th class="month-head">J</th>
+          <th class="month-head">J</th><th class="month-head">A</th><th class="month-head">S</th>
+          <th class="month-head">O</th><th class="month-head">N</th><th class="month-head">D</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="pm-body"></tbody>
+    </table>
+    </div>
+    <button class="add-row-btn" onclick="addPmRow()">+ Add task</button>
+  </div>
+
+  <div class="summary">
+    <div class="summary-note">
+      <b>How this works —</b> Section 01 totals your equipment count against per-unit AMC rates for the annual contract value. Section 02 auto-plots each task's visits across the year based on its frequency (Quarterly lands on Mar/Jun/Sep/Dec, and so on) — adjust individual dots isn't supported here, but you can change a task's frequency or add a task with a custom cadence by duplicating a row. Add your commercial terms below to reach the final contract value.
+    </div>
+    <div class="summary-calc">
+      <div class="sc-row"><span class="lbl">Total Annual AMC Value</span><span class="val" id="sum-subtotal">0.00</span></div>
+      <div class="sc-row pct"><span class="lbl">Discount / Negotiation <input type="number" id="pct-discount" value="0" min="0" step="1">%</span><span class="val" id="sum-discount">0.00</span></div>
+      <div class="sc-row"><span class="lbl">Subtotal After Discount</span><span class="val" id="sum-afterdisc">0.00</span></div>
+      <div class="sc-row pct"><span class="lbl">Tax / GST <input type="number" id="pct-tax" value="18" min="0" step="0.5">%</span><span class="val" id="sum-tax">0.00</span></div>
+      <div class="sc-row grand">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span class="lbl">Annual Contract Value</span><span class="val" id="sum-grand">0.00</span>
+        </div>
+        <div class="grand-alt"><span>Quarterly: <b id="sum-quarterly">0</b></span><span>Monthly: <b id="sum-monthly">0</b></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    Currency: ₹. Rates and quantities are entered by the preparer — this sheet handles the arithmetic, not the pricing.
+  </div>
+
+</div>
+
+<script>
+const EQUIP_DEFAULTS = [
+  "Chiller — air/water cooled",
+  "VRF outdoor unit",
+  "VRF indoor unit",
+  "Air Handling Unit (AHU)",
+  "Fan Coil Unit (FCU)",
+  "Split / package AC unit",
+  "Chilled water pump",
+  "Cooling tower",
+  "BMS system",
+  "Exhaust / fresh air fan",
+];
+
+const PM_TASK_DEFAULTS = [
+  ["Filter cleaning / replacement", 12],
+  ["Condensate drain cleaning", 12],
+  ["Condenser & evaporator coil cleaning", 4],
+  ["Refrigerant charge & leak check", 4],
+  ["Electrical connections & contactor check", 4],
+  ["Belt tension & bearing lubrication", 4],
+  ["Control panel / BMS point check", 4],
+  ["Vibration & noise check", 2],
+  ["Insulation check", 2],
+  ["Performance test — temp & pressure log", 12],
+];
+
+function fmt(n){ return (isFinite(n)?n:0).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+
+// ---- Equipment table ----
+function buildEquipRow(name){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="col-sn"></td>
+    <td class="col-desc"><input type="text" value="${name}"></td>
+    <td class="col-num"><input type="number" class="qty-input" min="0" step="1" placeholder="0"></td>
+    <td class="col-num"><input type="number" class="rate-input" min="0" step="any" placeholder="0"></td>
+    <td class="col-amt" data-amt>0.00</td>
+    <td class="col-del"><button onclick="removeEquipRow(this)">✕</button></td>
+  `;
+  tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recalcAll));
+  return tr;
+}
+function renumberEquip(){ document.querySelectorAll('#equip-body tr').forEach((tr,i) => tr.querySelector('.col-sn').textContent = i+1); }
+function addEquipRow(){ document.getElementById('equip-body').appendChild(buildEquipRow('New equipment')); renumberEquip(); recalcAll(); }
+function removeEquipRow(btn){ btn.closest('tr').remove(); renumberEquip(); recalcAll(); }
+
+// ---- PM schedule table ----
+function buildPmRow(name, freq){
+  const tr = document.createElement('tr');
+  const monthCells = Array.from({length:12}).map((_,i) =>
+    `<td class="month-cell"><div class="month-dot" data-month="${i+1}"></div></td>`
+  ).join('');
+  tr.innerHTML = `
+    <td class="col-sn"></td>
+    <td class="col-desc"><input type="text" value="${name}"></td>
+    <td class="col-freq">
+      <select class="freq-input">
+        <option value="12" ${freq==12?'selected':''}>Monthly</option>
+        <option value="6" ${freq==6?'selected':''}>Bi-monthly</option>
+        <option value="4" ${freq==4?'selected':''}>Quarterly</option>
+        <option value="2" ${freq==2?'selected':''}>Half-yearly</option>
+        <option value="1" ${freq==1?'selected':''}>Yearly</option>
+      </select>
+    </td>
+    ${monthCells}
+    <td class="col-del"><button onclick="removePmRow(this)">✕</button></td>
+  `;
+  tr.querySelector('.freq-input').addEventListener('change', recalcAll);
+  tr.querySelector('.col-desc input').addEventListener('input', () => {});
+  return tr;
+}
+function renumberPm(){ document.querySelectorAll('#pm-body tr').forEach((tr,i) => tr.querySelector('.col-sn').textContent = i+1); }
+function addPmRow(){ document.getElementById('pm-body').appendChild(buildPmRow('New task', 4)); renumberPm(); recalcAll(); }
+function removePmRow(btn){ btn.closest('tr').remove(); renumberPm(); recalcAll(); }
+
+function paintPmGrid(){
+  document.querySelectorAll('#pm-body tr').forEach(tr => {
+    const freq = parseInt(tr.querySelector('.freq-input').value) || 1;
+    const interval = 12 / freq;
+    tr.querySelectorAll('.month-dot').forEach(dot => {
+      const m = parseInt(dot.dataset.month);
+      const on = (m % interval === 0);
+      dot.classList.toggle('on', on);
+    });
+  });
+}
+
+function recalcAll(){
+  let subtotal = 0;
+  document.querySelectorAll('#equip-body tr').forEach(tr => {
+    const qty = parseFloat(tr.querySelector('.qty-input').value) || 0;
+    const rate = parseFloat(tr.querySelector('.rate-input').value) || 0;
+    const amt = qty * rate;
+    tr.querySelector('[data-amt]').textContent = fmt(amt);
+    subtotal += amt;
+  });
+  document.getElementById('equip-subtotal').textContent = fmt(subtotal);
+
+  const discPct = parseFloat(document.getElementById('pct-discount').value) || 0;
+  const taxPct = parseFloat(document.getElementById('pct-tax').value) || 0;
+  const discount = subtotal * discPct / 100;
+  const afterDisc = subtotal - discount;
+  const tax = afterDisc * taxPct / 100;
+  const grand = afterDisc + tax;
+
+  document.getElementById('sum-subtotal').textContent = fmt(subtotal);
+  document.getElementById('sum-discount').textContent = fmt(discount);
+  document.getElementById('sum-afterdisc').textContent = fmt(afterDisc);
+  document.getElementById('sum-tax').textContent = fmt(tax);
+  document.getElementById('sum-grand').textContent = fmt(grand);
+  document.getElementById('sum-quarterly').textContent = fmt(grand/4);
+  document.getElementById('sum-monthly').textContent = fmt(grand/12);
+
+  paintPmGrid();
+}
+
+// Init
+EQUIP_DEFAULTS.forEach(name => document.getElementById('equip-body').appendChild(buildEquipRow(name)));
+renumberEquip();
+PM_TASK_DEFAULTS.forEach(([name, freq]) => document.getElementById('pm-body').appendChild(buildPmRow(name, freq)));
+renumberPm();
+
+document.getElementById('pct-discount').addEventListener('input', recalcAll);
+document.getElementById('pct-tax').addEventListener('input', recalcAll);
+
+recalcAll();
+</script>
+
+</body>
+</html>
