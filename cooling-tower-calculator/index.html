@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cooling Tower Sizing Calculator</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --ink:#1B2A4A; --ink-soft:#425072; --steel:#6B7A99;
+    --rule:#C9CDD6; --rule-strong:#1B2A4A; --accent:#C6621F; --accent-soft:#F3E1D2;
+    --amber:#E8A33D; --good:#2E7D5B; --warn:#B8452F; --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px), var(--paper);
+    color:var(--ink); font-family: -apple-system, 'Segoe UI', Inter, sans-serif; padding: 28px 16px 80px;
+  }
+  .sheet{ max-width: 1040px; margin: 0 auto; }
+  .titleblock{ border: 2px solid var(--rule-strong); display:grid; grid-template-columns: 1.4fr 1fr; margin-bottom: 26px; }
+  .tb-main{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); }
+  .tb-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .tb-title{ font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; }
+  .tb-sub{ font-size: 13px; color: var(--steel); margin: 0; }
+  .tb-fields{ display:grid; grid-template-columns: 1fr 1fr; }
+  .tb-field{ padding: 10px 16px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .tb-field input{ width:100%; border:none; background:transparent; font-size: 13px; font-weight: 600; color: var(--ink); outline:none; font-family:'IBM Plex Mono', monospace; }
+
+  .section{ margin-bottom: 22px; border: 1.5px solid var(--rule-strong); background: #FFFEFB; }
+  .sec-head{ display:flex; align-items:baseline; gap:10px; background: var(--ink); color: #FDFCF8; padding: 9px 16px; }
+  .sec-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); font-weight: 700; }
+  .sec-name{ font-size: 14px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .sec-body{ padding: 16px 18px; }
+
+  .input-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .field input, .field select{ width:100%; padding: 8px 9px; border: 1px solid var(--rule); background: var(--paper); font-size: 13px; color: var(--ink); font-family:'IBM Plex Mono', monospace; outline:none; }
+  .field input:focus, .field select:focus{ border-color: var(--accent); background: #fff; }
+  .field .unit{ color: var(--steel); font-size:11px; margin-left:4px; }
+
+  .method-toggle{ display:flex; gap:0; border: 1px solid var(--rule-strong); width:fit-content; margin-bottom:16px; }
+  .method-toggle button{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.5px; text-transform:uppercase; padding: 8px 16px; border:none; background:#FFFEFB; color:var(--ink-soft); cursor:pointer; }
+  .method-toggle button.active{ background: var(--ink); color:#FDFCF8; }
+  .method-toggle button:not(:last-child){ border-right: 1px solid var(--rule-strong); }
+
+  .results-strip{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule-strong); border: 1.5px solid var(--rule-strong); margin-top: 16px; }
+  .result-box{ background:#FFFEFB; padding: 10px 14px; }
+  .result-box .rlabel{ font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .result-box .rvalue{ font-family:'IBM Plex Mono', monospace; font-size: 17px; font-weight:700; color: var(--ink); }
+  .result-box .rvalue small{ font-size:11px; font-weight:400; color:var(--steel); }
+  .result-box.highlight{ background: var(--accent-soft); }
+  .result-box.highlight .rvalue{ color: var(--accent); }
+
+  .badge{ display:inline-block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing:0.5px; padding: 3px 8px; margin-top:10px; border:1px solid; }
+  .badge.good{ color: var(--good); border-color: var(--good); background: rgba(46,125,91,0.08); }
+  .badge.warn{ color: var(--warn); border-color: var(--warn); background: rgba(184,69,47,0.08); }
+
+  .summary{ border: 2px solid var(--rule-strong); margin-top: 30px; }
+  .summary-head{ background: var(--ink); color:#FDFCF8; padding: 10px 18px; font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .spec-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .spec-cell{ padding: 14px 18px; border-top: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .spec-cell .lbl{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .spec-cell .val{ font-family:'IBM Plex Mono', monospace; font-size: 18px; font-weight:700; color: var(--ink); }
+  .spec-cell .val small{ font-size: 11px; font-weight: 400; color: var(--steel); }
+
+  .toolbar{ max-width:1040px; margin: 0 auto 14px; display:flex; justify-content:flex-end; gap:8px; }
+  .toolbar button{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding: 8px 14px; border: 1.5px solid var(--ink); background: #FFFEFB; color: var(--ink); cursor:pointer; }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{ max-width:1040px; margin: 18px auto 0; font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace; line-height:1.6; }
+
+  @media print{ body{ background:#fff; padding:0; } .toolbar{ display:none; } .section{ break-inside: avoid; } }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">Cooling Tower Sizing Worksheet</div>
+      <h1 class="tb-title">Cooling Tower Sizing Calculator</h1>
+      <p class="tb-sub">Heat rejection, water flow, range/approach &amp; makeup water balance</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Project</label><input placeholder="Project name" /></div>
+      <div class="tb-field"><label>Tower Tag</label><input placeholder="e.g. CT-01" /></div>
+      <div class="tb-field"><label>Location</label><input placeholder="City / site" /></div>
+      <div class="tb-field"><label>Date</label><input placeholder="DD / MM / YYYY" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+      <div class="tb-field"><label>Tower Type</label><input placeholder="e.g. Induced draft, FRP" /></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: HEAT REJECTION LOAD -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">01</span><span class="sec-name">Heat Rejection Load</span></div>
+    <div class="sec-body">
+      <div class="method-toggle">
+        <button id="btn-chiller" class="active" onclick="setLoadMethod('chiller')">From Chiller Data</button>
+        <button id="btn-direct" onclick="setLoadMethod('direct')">Direct Heat Load</button>
+      </div>
+      <div class="input-grid" id="field-chiller">
+        <div class="field"><label>Chiller Capacity</label><input id="chillerTR" type="number" step="any" value="200"><span class="unit">TR</span></div>
+        <div class="field"><label>Chiller COP</label><input id="chillerCOP" type="number" step="any" value="5.0"></div>
+      </div>
+      <div class="input-grid" id="field-direct" style="display:none;">
+        <div class="field"><label>Heat Rejection Load</label><input id="directLoad" type="number" step="any" value="800"><span class="unit">kW</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box highlight"><div class="rlabel">Heat Rejection Load</div><div class="rvalue" id="out-heatKW">–<small> kW</small></div></div>
+        <div class="result-box"><div class="rlabel">Equivalent</div><div class="rvalue" id="out-heatTR">–<small> TR</small></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: WATER FLOW RATE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Water Flow Rate</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Range (ΔT across tower)</label><input id="range" type="number" step="any" value="5.5"><span class="unit">°C</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box highlight"><div class="rlabel">Water Flow Rate</div><div class="rvalue" id="out-flowM3">–<small> m³/hr</small></div></div>
+        <div class="result-box"><div class="rlabel">Water Flow Rate</div><div class="rvalue" id="out-flowLPM">–<small> L/min</small></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: APPROACH, WET BULB & TEMPERATURES -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">03</span><span class="sec-name">Approach, Wet Bulb &amp; Water Temperatures</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Design Wet Bulb Temp.</label><input id="wetBulb" type="number" step="any" value="28"><span class="unit">°C</span></div>
+        <div class="field"><label>Approach</label><input id="approach" type="number" step="any" value="4.5"><span class="unit">°C</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box"><div class="rlabel">Cold Water Temp. (leaving)</div><div class="rvalue" id="out-cwt">–<small> °C</small></div></div>
+        <div class="result-box highlight"><div class="rlabel">Hot Water Temp. (entering)</div><div class="rvalue" id="out-hwt">–<small> °C</small></div></div>
+      </div>
+      <div id="approach-badge"></div>
+      <div class="footnote" style="margin:10px 0 0;">Use the local design (peak season, ~0.4–1% exceedance) wet bulb temperature for the site, not a typical/average value — undersizing here is the most common cooling tower selection mistake. A tighter approach (below ~3°C) sizes a significantly larger, costlier tower for the same load.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: WATER BALANCE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">04</span><span class="sec-name">Makeup Water Balance</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Cycles of Concentration (COC)</label><input id="coc" type="number" step="any" value="4"></div>
+        <div class="field"><label>Drift Loss</label><input id="driftPct" type="number" step="any" value="0.02"><span class="unit">% of flow</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box"><div class="rlabel">Evaporation Loss</div><div class="rvalue" id="out-evap">–<small> m³/hr</small></div></div>
+        <div class="result-box"><div class="rlabel">Drift Loss</div><div class="rvalue" id="out-drift">–<small> m³/hr</small></div></div>
+        <div class="result-box"><div class="rlabel">Blowdown</div><div class="rvalue" id="out-blowdown">–<small> m³/hr</small></div></div>
+        <div class="result-box highlight"><div class="rlabel">Total Makeup Water</div><div class="rvalue" id="out-makeup">–<small> m³/hr</small></div></div>
+      </div>
+      <div class="footnote" style="margin:10px 0 0;">Evaporation estimated from the heat balance (Q / latent heat of water, ≈2260 kJ/kg). Blowdown = Evaporation / (COC − 1) − Drift, the standard water-balance formula. Raise COC to reduce blowdown volume, but check it against your water treatment scheme and local water quality.</div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-head">Tower Selection Spec Sheet</div>
+    <div class="spec-grid">
+      <div class="spec-cell"><div class="lbl">Heat Rejection</div><div class="val" id="spec-heat">–<small> kW</small></div></div>
+      <div class="spec-cell"><div class="lbl">Water Flow Rate</div><div class="val" id="spec-flow">–<small> m³/hr</small></div></div>
+      <div class="spec-cell"><div class="lbl">Hot Water In</div><div class="val" id="spec-hwt">–<small> °C</small></div></div>
+      <div class="spec-cell"><div class="lbl">Cold Water Out</div><div class="val" id="spec-cwt">–<small> °C</small></div></div>
+      <div class="spec-cell"><div class="lbl">Range / Approach</div><div class="val" id="spec-ra">–</div></div>
+      <div class="spec-cell"><div class="lbl">Design Wet Bulb</div><div class="val" id="spec-wb">–<small> °C</small></div></div>
+      <div class="spec-cell"><div class="lbl">Makeup Water</div><div class="val" id="spec-makeup">–<small> m³/hr</small></div></div>
+      <div class="spec-cell"><div class="lbl">Cycles of Concentration</div><div class="val" id="spec-coc">–</div></div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    This sheet establishes the process load, water flow, and design temperatures to hand to a cooling tower vendor for model selection — actual tower model/size still needs to be checked against the manufacturer's performance curves at your specific range, approach and wet bulb combination, since these interact non-linearly. Water properties assumed: Cp 4.186 kJ/kg·K, latent heat of vaporisation ≈ 2260 kJ/kg.
+  </div>
+
+</div>
+
+<script>
+let loadMethod = 'chiller';
+
+function fmt(n, d){ d = d===undefined?2:d; return (isFinite(n)?n:0).toLocaleString('en-IN', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+function setLoadMethod(m){
+  loadMethod = m;
+  document.getElementById('btn-chiller').classList.toggle('active', m==='chiller');
+  document.getElementById('btn-direct').classList.toggle('active', m==='direct');
+  document.getElementById('field-chiller').style.display = m==='chiller' ? '' : 'none';
+  document.getElementById('field-direct').style.display = m==='direct' ? '' : 'none';
+  recalcAll();
+}
+
+function recalcAll(){
+  const TR_TO_KW = 3.517;
+
+  // --- Heat rejection load ---
+  let heatKW = 0;
+  if(loadMethod === 'chiller'){
+    const tr = parseFloat(document.getElementById('chillerTR').value) || 0;
+    const cop = parseFloat(document.getElementById('chillerCOP').value) || 0;
+    const evapKW = tr * TR_TO_KW;
+    heatKW = cop > 0 ? evapKW * (1 + 1/cop) : evapKW;
+  } else {
+    heatKW = parseFloat(document.getElementById('directLoad').value) || 0;
+  }
+  const heatTR = heatKW / TR_TO_KW;
+
+  document.getElementById('out-heatKW').innerHTML = fmt(heatKW,1) + '<small> kW</small>';
+  document.getElementById('out-heatTR').innerHTML = fmt(heatTR,1) + '<small> TR</small>';
+
+  // --- Water flow rate ---
+  const range = parseFloat(document.getElementById('range').value) || 0;
+  const Cp = 4.186;
+  const flowKgS = range > 0 ? heatKW / (Cp * range) : 0;
+  const flowM3hr = flowKgS * 3.6;
+  const flowLPM = flowKgS * 60;
+
+  document.getElementById('out-flowM3').innerHTML = fmt(flowM3hr) + '<small> m³/hr</small>';
+  document.getElementById('out-flowLPM').innerHTML = fmt(flowLPM) + '<small> L/min</small>';
+
+  // --- Approach / wet bulb / temperatures ---
+  const wetBulb = parseFloat(document.getElementById('wetBulb').value) || 0;
+  const approach = parseFloat(document.getElementById('approach').value) || 0;
+  const cwt = wetBulb + approach;
+  const hwt = cwt + range;
+
+  document.getElementById('out-cwt').innerHTML = fmt(cwt,1) + '<small> °C</small>';
+  document.getElementById('out-hwt').innerHTML = fmt(hwt,1) + '<small> °C</small>';
+
+  const aBadge = document.getElementById('approach-badge');
+  if(approach > 0){
+    if(approach < 3){ aBadge.innerHTML = '<span class="badge warn">Approach below 3°C — significantly larger, costlier tower</span>'; }
+    else if(approach > 8){ aBadge.innerHTML = '<span class="badge warn">Approach above 8°C — tower may be oversized for the load</span>'; }
+    else { aBadge.innerHTML = '<span class="badge good">Approach within typical design range (3–8°C)</span>'; }
+  } else { aBadge.innerHTML = ''; }
+
+  // --- Water balance ---
+  const latentHeat = 2260; // kJ/kg
+  const evapKgHr = (heatKW * 3600) / latentHeat;
+  const evapM3hr = evapKgHr / 1000;
+
+  const driftPct = parseFloat(document.getElementById('driftPct').value) || 0;
+  const driftM3hr = flowM3hr * driftPct / 100;
+
+  const coc = parseFloat(document.getElementById('coc').value) || 0;
+  const blowdownM3hr = coc > 1 ? (evapM3hr / (coc - 1)) - driftM3hr : 0;
+  const blowdownClamped = Math.max(blowdownM3hr, 0);
+
+  const makeupM3hr = evapM3hr + driftM3hr + blowdownClamped;
+
+  document.getElementById('out-evap').innerHTML = fmt(evapM3hr) + '<small> m³/hr</small>';
+  document.getElementById('out-drift').innerHTML = fmt(driftM3hr) + '<small> m³/hr</small>';
+  document.getElementById('out-blowdown').innerHTML = fmt(blowdownClamped) + '<small> m³/hr</small>';
+  document.getElementById('out-makeup').innerHTML = fmt(makeupM3hr) + '<small> m³/hr</small>';
+
+  // --- Spec sheet ---
+  document.getElementById('spec-heat').innerHTML = fmt(heatKW,1) + '<small> kW</small>';
+  document.getElementById('spec-flow').innerHTML = fmt(flowM3hr) + '<small> m³/hr</small>';
+  document.getElementById('spec-hwt').innerHTML = fmt(hwt,1) + '<small> °C</small>';
+  document.getElementById('spec-cwt').innerHTML = fmt(cwt,1) + '<small> °C</small>';
+  document.getElementById('spec-ra').textContent = fmt(range,1) + ' / ' + fmt(approach,1) + ' °C';
+  document.getElementById('spec-wb').innerHTML = fmt(wetBulb,1) + '<small> °C</small>';
+  document.getElementById('spec-makeup').innerHTML = fmt(makeupM3hr) + '<small> m³/hr</small>';
+  document.getElementById('spec-coc').textContent = fmt(coc,1);
+}
+
+['chillerTR','chillerCOP','directLoad','range','wetBulb','approach','coc','driftPct'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcAll);
+});
+
+recalcAll();
+</script>
+
+</body>
+</html>

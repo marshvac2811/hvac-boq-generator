@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Energy Savings &amp; Payback Calculator</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --ink:#1B2A4A; --ink-soft:#425072; --steel:#6B7A99;
+    --rule:#C9CDD6; --rule-strong:#1B2A4A; --accent:#C6621F; --accent-soft:#F3E1D2;
+    --amber:#E8A33D; --good:#2E7D5B; --warn:#B8452F; --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px), var(--paper);
+    color:var(--ink); font-family: -apple-system, 'Segoe UI', Inter, sans-serif; padding: 28px 16px 80px;
+  }
+  .sheet{ max-width: 1040px; margin: 0 auto; }
+  .titleblock{ border: 2px solid var(--rule-strong); display:grid; grid-template-columns: 1.4fr 1fr; margin-bottom: 26px; }
+  .tb-main{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); }
+  .tb-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .tb-title{ font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; }
+  .tb-sub{ font-size: 13px; color: var(--steel); margin: 0; }
+  .tb-fields{ display:grid; grid-template-columns: 1fr 1fr; }
+  .tb-field{ padding: 10px 16px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .tb-field input{ width:100%; border:none; background:transparent; font-size: 13px; font-weight: 600; color: var(--ink); outline:none; font-family:'IBM Plex Mono', monospace; }
+
+  .section{ margin-bottom: 22px; border: 1.5px solid var(--rule-strong); background: #FFFEFB; }
+  .sec-head{ display:flex; align-items:baseline; gap:10px; background: var(--ink); color: #FDFCF8; padding: 9px 16px; }
+  .sec-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); font-weight: 700; }
+  .sec-name{ font-size: 14px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .sec-body{ padding: 16px 18px; }
+
+  .split{ display:grid; grid-template-columns: 1fr 1fr; }
+  .split > div:first-child{ border-right: 1.5px solid var(--rule-strong); }
+  .split-head{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing:1px; text-transform:uppercase; color: var(--ink-soft); padding: 12px 18px 4px; }
+
+  .input-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; padding: 8px 18px 18px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .field input, .field select{ width:100%; padding: 8px 9px; border: 1px solid var(--rule); background: var(--paper); font-size: 13px; color: var(--ink); font-family:'IBM Plex Mono', monospace; outline:none; }
+  .field input:focus, .field select:focus{ border-color: var(--accent); background: #fff; }
+  .field .unit{ color: var(--steel); font-size:11px; margin-left:4px; }
+
+  .results-strip{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule-strong); border-top: 1.5px solid var(--rule-strong); }
+  .result-box{ background:#FFFEFB; padding: 12px 16px; }
+  .result-box .rlabel{ font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .result-box .rvalue{ font-family:'IBM Plex Mono', monospace; font-size: 17px; font-weight:700; color: var(--ink); }
+  .result-box .rvalue small{ font-size:11px; font-weight:400; color:var(--steel); }
+  .result-box.highlight{ background: var(--accent-soft); }
+  .result-box.highlight .rvalue{ color: var(--accent); }
+
+  table{ width:100%; border-collapse: collapse; }
+  thead th{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); text-align: right; padding: 8px 10px; border-bottom: 1.5px solid var(--rule-strong); background: #F1EEE5; }
+  thead th:first-child{ text-align:left; }
+  tbody td{ padding: 6px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; text-align:right; font-family:'IBM Plex Mono', monospace; }
+  tbody td:first-child{ text-align:left; color:var(--steel); font-family: -apple-system, sans-serif; }
+  tbody tr.payback-row td{ background: var(--accent-soft); font-weight:700; }
+
+  .summary{ border: 2px solid var(--rule-strong); margin-top: 30px; display:grid; grid-template-columns: 1fr 340px; }
+  .summary-note{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); font-size: 12px; color: var(--steel); line-height:1.6; }
+  .summary-note b{ color:var(--ink); }
+  .summary-calc{ padding: 4px 0; }
+  .sc-row{ display:flex; justify-content:space-between; align-items:center; padding: 9px 18px; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  .sc-row .lbl{ color: var(--ink-soft); }
+  .sc-row .val{ font-family:'IBM Plex Mono', monospace; font-weight:600; }
+  .sc-row.grand{ background: var(--ink); color: #FDFCF8; border-bottom:none; padding: 16px 18px; flex-direction:column; align-items:flex-start; gap:8px; }
+  .sc-row.grand .lbl{ color:#FDFCF8; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; font-size:12px; }
+  .sc-row.grand .val{ font-size: 24px; color: var(--amber); }
+  .grand-alt{ display:flex; gap:16px; font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--steel); }
+  .grand-alt span b{ color:#FDFCF8; }
+
+  .toolbar{ max-width:1040px; margin: 0 auto 14px; display:flex; justify-content:flex-end; gap:8px; }
+  .toolbar button{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding: 8px 14px; border: 1.5px solid var(--ink); background: #FFFEFB; color: var(--ink); cursor:pointer; }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{ max-width:1040px; margin: 18px auto 0; font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace; line-height:1.6; }
+  .badge{ display:inline-block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing:0.5px; padding: 3px 8px; margin: 10px 18px 0; border:1px solid; }
+  .badge.good{ color: var(--good); border-color: var(--good); background: rgba(46,125,91,0.08); }
+  .badge.warn{ color: var(--warn); border-color: var(--warn); background: rgba(184,69,47,0.08); }
+
+  @media print{ body{ background:#fff; padding:0; } .toolbar{ display:none; } .section{ break-inside: avoid; } }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields, .split, .summary{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+    .split > div:first-child{ border-right:none; border-bottom: 1.5px solid var(--rule-strong); }
+    .summary-note{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">Retrofit Proposal Worksheet</div>
+      <h1 class="tb-title">Energy Savings &amp; Payback</h1>
+      <p class="tb-sub">Old vs. new equipment — energy cost comparison and simple payback</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Client / Site</label><input placeholder="Client / site name" /></div>
+      <div class="tb-field"><label>Equipment</label><input placeholder="e.g. Chiller retrofit" /></div>
+      <div class="tb-field"><label>Date</label><input placeholder="DD / MM / YYYY" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: OLD vs NEW SYSTEM -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">01</span><span class="sec-name">Existing vs. Proposed System</span></div>
+    <div class="split">
+      <div>
+        <div class="split-head">Existing (old) system</div>
+        <div class="input-grid">
+          <div class="field"><label>Capacity</label><input id="capacityOld" type="number" step="any" value="200"><span class="unit">TR</span></div>
+          <div class="field"><label>Efficiency</label><input id="effOld" type="number" step="any" value="0.95"><span class="unit">kW/TR</span></div>
+        </div>
+      </div>
+      <div>
+        <div class="split-head">Proposed (new) system</div>
+        <div class="input-grid">
+          <div class="field"><label>Capacity</label><input id="capacityNew" type="number" step="any" value="200"><span class="unit">TR</span></div>
+          <div class="field"><label>Efficiency</label><input id="effNew" type="number" step="any" value="0.62"><span class="unit">kW/TR</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: OPERATING PROFILE & TARIFF -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Operating Profile &amp; Tariff</span></div>
+    <div class="sec-body">
+      <div class="input-grid" style="padding:0;">
+        <div class="field"><label>Annual Operating Hours</label><input id="hours" type="number" step="any" value="3000"><span class="unit">hr/yr</span></div>
+        <div class="field"><label>Average Load Factor</label><input id="loadFactor" type="number" step="any" value="70"><span class="unit">%</span></div>
+        <div class="field"><label>Electricity Tariff</label><input id="tariff" type="number" step="any" value="8.5"><span class="unit">₹/kWh</span></div>
+      </div>
+    </div>
+    <div class="results-strip">
+      <div class="result-box"><div class="rlabel">Annual Energy — Old</div><div class="rvalue" id="out-kwhOld">–<small> kWh</small></div></div>
+      <div class="result-box"><div class="rlabel">Annual Energy — New</div><div class="rvalue" id="out-kwhNew">–<small> kWh</small></div></div>
+      <div class="result-box highlight"><div class="rlabel">Annual Energy Saved</div><div class="rvalue" id="out-kwhSaved">–<small> kWh</small></div></div>
+      <div class="result-box highlight"><div class="rlabel">Reduction</div><div class="rvalue" id="out-pctSaved">–<small> %</small></div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: INVESTMENT & FINANCIALS -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">03</span><span class="sec-name">Investment &amp; Payback</span></div>
+    <div class="sec-body">
+      <div class="input-grid" style="padding:0;">
+        <div class="field"><label>Capital Investment</label><input id="investment" type="number" step="any" value="1800000"><span class="unit">₹</span></div>
+        <div class="field"><label>Incremental Annual O&amp;M</label><input id="incrementalOM" type="number" step="any" value="0"><span class="unit">₹/yr</span></div>
+        <div class="field"><label>Project Life</label><input id="projectLife" type="number" step="1" min="1" max="25" value="10"><span class="unit">years</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-note">
+      <b>How this works —</b> Annual energy consumption for each system uses Capacity × Efficiency × Operating Hours × Load Factor. The tariff converts that to a cost, and Incremental Annual O&amp;M (positive if the new system costs more to maintain, negative if it costs less) nets against the energy savings. Simple payback ignores discounting — for a more rigorous investment case, treat this as the input to an NPV/IRR analysis.
+    </div>
+    <div class="summary-calc">
+      <div class="sc-row"><span class="lbl">Annual Energy Cost Savings</span><span class="val" id="sum-costSavings">0</span></div>
+      <div class="sc-row"><span class="lbl">Incremental O&amp;M</span><span class="val" id="sum-om">0</span></div>
+      <div class="sc-row"><span class="lbl">Net Annual Savings</span><span class="val" id="sum-netSavings">0</span></div>
+      <div class="sc-row grand">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span class="lbl">Simple Payback Period</span><span class="val" id="sum-payback">– yrs</span>
+        </div>
+        <div class="grand-alt"><span>Net savings over life: <b id="sum-netlife">0</b></span><span>ROI: <b id="sum-roi">0%</b></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="payback-badge"></div>
+
+  <!-- CUMULATIVE TABLE -->
+  <div class="section" style="margin-top:22px;">
+    <div class="sec-head"><span class="sec-num">04</span><span class="sec-name">Cumulative Savings by Year</span></div>
+    <table>
+      <thead><tr><th>Year</th><th>Annual Net Savings</th><th>Cumulative Savings</th><th>Net Position (vs. Investment)</th></tr></thead>
+      <tbody id="cumulative-body"></tbody>
+    </table>
+  </div>
+
+  <div class="footnote">
+    Currency: ₹. The highlighted row marks the year net position first turns positive — the payback point.
+  </div>
+
+</div>
+
+<script>
+function fmt(n, d){ d = d===undefined?0:d; return (isFinite(n)?n:0).toLocaleString('en-IN', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+function recalcAll(){
+  const capOld = parseFloat(document.getElementById('capacityOld').value) || 0;
+  const effOld = parseFloat(document.getElementById('effOld').value) || 0;
+  const capNew = parseFloat(document.getElementById('capacityNew').value) || 0;
+  const effNew = parseFloat(document.getElementById('effNew').value) || 0;
+  const hours = parseFloat(document.getElementById('hours').value) || 0;
+  const loadFactor = (parseFloat(document.getElementById('loadFactor').value) || 0) / 100;
+  const tariff = parseFloat(document.getElementById('tariff').value) || 0;
+
+  const kwhOld = capOld * effOld * hours * loadFactor;
+  const kwhNew = capNew * effNew * hours * loadFactor;
+  const kwhSaved = kwhOld - kwhNew;
+  const pctSaved = kwhOld > 0 ? (kwhSaved/kwhOld*100) : 0;
+
+  document.getElementById('out-kwhOld').innerHTML = fmt(kwhOld) + '<small> kWh</small>';
+  document.getElementById('out-kwhNew').innerHTML = fmt(kwhNew) + '<small> kWh</small>';
+  document.getElementById('out-kwhSaved').innerHTML = fmt(kwhSaved) + '<small> kWh</small>';
+  document.getElementById('out-pctSaved').innerHTML = fmt(pctSaved,1) + '<small> %</small>';
+
+  const costSavings = kwhSaved * tariff;
+  const incrementalOM = parseFloat(document.getElementById('incrementalOM').value) || 0;
+  const netAnnualSavings = costSavings - incrementalOM;
+
+  const investment = parseFloat(document.getElementById('investment').value) || 0;
+  const projectLife = Math.max(1, Math.min(25, parseInt(document.getElementById('projectLife').value) || 10));
+
+  const payback = netAnnualSavings > 0 ? investment / netAnnualSavings : Infinity;
+  const totalSavingsLife = netAnnualSavings * projectLife;
+  const netSavingsLife = totalSavingsLife - investment;
+  const roi = investment > 0 ? (netSavingsLife / investment * 100) : 0;
+
+  document.getElementById('sum-costSavings').textContent = '₹ ' + fmt(costSavings);
+  document.getElementById('sum-om').textContent = '₹ ' + fmt(incrementalOM);
+  document.getElementById('sum-netSavings').textContent = '₹ ' + fmt(netAnnualSavings);
+  document.getElementById('sum-payback').textContent = isFinite(payback) ? fmt(payback,1) + ' yrs' : '— (no net savings)';
+  document.getElementById('sum-netlife').textContent = '₹ ' + fmt(netSavingsLife);
+  document.getElementById('sum-roi').textContent = fmt(roi,0) + '%';
+
+  const pBadge = document.getElementById('payback-badge');
+  if(netAnnualSavings <= 0){
+    pBadge.innerHTML = '<span class="badge warn">Net annual savings is zero or negative — no payback under current inputs</span>';
+  } else if(payback <= 3){
+    pBadge.innerHTML = '<span class="badge good">Strong payback — under 3 years</span>';
+  } else if(payback <= 7){
+    pBadge.innerHTML = '<span class="badge good">Reasonable payback — within typical retrofit range</span>';
+  } else {
+    pBadge.innerHTML = '<span class="badge warn">Long payback — over 7 years, weigh against equipment life</span>';
+  }
+
+  // Cumulative table
+  const tbody = document.getElementById('cumulative-body');
+  tbody.innerHTML = '';
+  let cumulative = 0;
+  let paybackYearFound = false;
+  for(let y=1; y<=projectLife; y++){
+    cumulative += netAnnualSavings;
+    const netPosition = cumulative - investment;
+    const isPaybackYear = !paybackYearFound && netPosition >= 0 && netAnnualSavings > 0;
+    if(isPaybackYear) paybackYearFound = true;
+    const tr = document.createElement('tr');
+    if(isPaybackYear) tr.className = 'payback-row';
+    tr.innerHTML = `
+      <td>Year ${y}</td>
+      <td>₹ ${fmt(netAnnualSavings)}</td>
+      <td>₹ ${fmt(cumulative)}</td>
+      <td>₹ ${fmt(netPosition)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+['capacityOld','effOld','capacityNew','effNew','hours','loadFactor','tariff','investment','incrementalOM','projectLife'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcAll);
+});
+
+recalcAll();
+</script>
+
+</body>
+</html>
