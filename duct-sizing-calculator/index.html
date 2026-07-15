@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ductwork Sizing Calculator</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --ink:#1B2A4A; --ink-soft:#425072; --steel:#6B7A99;
+    --rule:#C9CDD6; --rule-strong:#1B2A4A; --accent:#C6621F; --accent-soft:#F3E1D2;
+    --amber:#E8A33D; --good:#2E7D5B; --warn:#B8452F; --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px), var(--paper);
+    color:var(--ink); font-family: -apple-system, 'Segoe UI', Inter, sans-serif; padding: 28px 16px 80px;
+  }
+  .sheet{ max-width: 1040px; margin: 0 auto; }
+  .titleblock{ border: 2px solid var(--rule-strong); display:grid; grid-template-columns: 1.4fr 1fr; margin-bottom: 26px; }
+  .tb-main{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); }
+  .tb-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .tb-title{ font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; }
+  .tb-sub{ font-size: 13px; color: var(--steel); margin: 0; }
+  .tb-fields{ display:grid; grid-template-columns: 1fr 1fr; }
+  .tb-field{ padding: 10px 16px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .tb-field input{ width:100%; border:none; background:transparent; font-size: 13px; font-weight: 600; color: var(--ink); outline:none; font-family:'IBM Plex Mono', monospace; }
+
+  .section{ margin-bottom: 22px; border: 1.5px solid var(--rule-strong); background: #FFFEFB; }
+  .sec-head{ display:flex; align-items:baseline; gap:10px; background: var(--ink); color: #FDFCF8; padding: 9px 16px; }
+  .sec-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); font-weight: 700; }
+  .sec-name{ font-size: 14px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .sec-body{ padding: 16px 18px; }
+
+  .input-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .field input, .field select{ width:100%; padding: 8px 9px; border: 1px solid var(--rule); background: var(--paper); font-size: 13px; color: var(--ink); font-family:'IBM Plex Mono', monospace; outline:none; }
+  .field input:focus, .field select:focus{ border-color: var(--accent); background: #fff; }
+  .field .unit{ color: var(--steel); font-size:11px; margin-left:4px; }
+
+  .method-toggle{ display:flex; gap:0; border: 1px solid var(--rule-strong); width:fit-content; margin-bottom:16px; }
+  .method-toggle button{
+    font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:0.5px; text-transform:uppercase;
+    padding: 8px 16px; border:none; background:#FFFEFB; color:var(--ink-soft); cursor:pointer;
+  }
+  .method-toggle button.active{ background: var(--ink); color:#FDFCF8; }
+  .method-toggle button:not(:last-child){ border-right: 1px solid var(--rule-strong); }
+
+  .results-strip{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule-strong); border: 1.5px solid var(--rule-strong); margin-top: 16px; }
+  .result-box{ background:#FFFEFB; padding: 10px 14px; }
+  .result-box .rlabel{ font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .result-box .rvalue{ font-family:'IBM Plex Mono', monospace; font-size: 17px; font-weight:700; color: var(--ink); }
+  .result-box .rvalue small{ font-size:11px; font-weight:400; color:var(--steel); }
+  .result-box.highlight{ background: var(--accent-soft); }
+  .result-box.highlight .rvalue{ color: var(--accent); }
+
+  .badge{ display:inline-block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing:0.5px; padding: 3px 8px; margin-top:10px; border:1px solid; }
+  .badge.good{ color: var(--good); border-color: var(--good); background: rgba(46,125,91,0.08); }
+  .badge.warn{ color: var(--warn); border-color: var(--warn); background: rgba(184,69,47,0.08); }
+
+  table{ width:100%; border-collapse: collapse; }
+  thead th{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); text-align: left; padding: 8px 10px; border-bottom: 1.5px solid var(--rule-strong); background: #F1EEE5; }
+  thead th.num{ text-align:right; }
+  tbody td{ padding: 6px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; vertical-align: middle; }
+  .col-sn{ width: 32px; color:var(--steel); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .col-desc input{ width:100%; border:none; background:transparent; font-size:13px; color:var(--ink); outline:none; font-family:inherit; }
+  .col-num{ width:110px; text-align:right; }
+  .col-num input{ width:100%; border:none; border-bottom:1px dashed var(--rule); background:transparent; text-align:right; font-family:'IBM Plex Mono', monospace; font-size:13px; padding: 3px 4px; outline:none; color:var(--ink); }
+  .col-num input:focus{ background: var(--accent-soft); border-bottom:1px solid var(--accent); }
+  .col-amt{ width:120px; text-align:right; font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--ink); }
+  .col-del{ width:28px; text-align:center; }
+  .col-del button{ border:none; background:transparent; color:var(--rule-strong); opacity:0.35; cursor:pointer; font-size:15px; line-height:1; }
+  .col-del button:hover{ opacity:1; color:var(--accent); }
+  .subtotal-row td{ background: #F1EEE5; font-weight:700; border-bottom:none; }
+  .subtotal-row .label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-soft); }
+  .add-row-btn{ display:block; width:100%; text-align:left; padding: 7px 16px; background:#FFFEFB; border:none; border-top: 1px dashed var(--rule); color: var(--accent); font-size:12px; font-family:'IBM Plex Mono', monospace; cursor:pointer; }
+  .add-row-btn:hover{ background: var(--accent-soft); }
+
+  .summary{ border: 2px solid var(--rule-strong); margin-top: 30px; display:grid; grid-template-columns: 1fr 340px; }
+  .summary-note{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); font-size: 12px; color: var(--steel); line-height:1.6; }
+  .summary-note b{ color:var(--ink); }
+  .summary-calc{ padding: 4px 0; }
+  .sc-row{ display:flex; justify-content:space-between; align-items:center; padding: 9px 18px; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  .sc-row .lbl{ color: var(--ink-soft); }
+  .sc-row .val{ font-family:'IBM Plex Mono', monospace; font-weight:600; }
+  .sc-row.grand{ background: var(--ink); color: #FDFCF8; border-bottom:none; padding: 16px 18px; flex-direction:column; align-items:flex-start; gap:8px; }
+  .sc-row.grand .lbl{ color:#FDFCF8; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; font-size:12px; }
+  .sc-row.grand .val{ font-size: 26px; color: var(--amber); }
+  .grand-alt{ display:flex; gap:16px; font-family:'IBM Plex Mono', monospace; font-size:11px; color: var(--steel); }
+  .grand-alt span b{ color:#FDFCF8; }
+
+  .toolbar{ max-width:1040px; margin: 0 auto 14px; display:flex; justify-content:flex-end; gap:8px; }
+  .toolbar button{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding: 8px 14px; border: 1.5px solid var(--ink); background: #FFFEFB; color: var(--ink); cursor:pointer; }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{ max-width:1040px; margin: 18px auto 0; font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace; line-height:1.6; }
+
+  @media print{
+    body{ background:#fff; padding:0; } .toolbar{ display:none; } .add-row-btn{ display:none; } .col-del{ display:none; } .section{ break-inside: avoid; }
+  }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields, .summary{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+    .summary-note{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">Duct Sizing Worksheet</div>
+      <h1 class="tb-title">Ductwork Sizing Calculator</h1>
+      <p class="tb-sub">Round duct sizing, fitting losses &amp; rectangular equivalent — Darcy-Weisbach method</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Project</label><input placeholder="Project name" /></div>
+      <div class="tb-field"><label>Duct Tag</label><input placeholder="e.g. SA-1" /></div>
+      <div class="tb-field"><label>Service</label><input placeholder="e.g. Supply air" /></div>
+      <div class="tb-field"><label>Date</label><input placeholder="DD / MM / YYYY" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+      <div class="tb-field"><label>Air Temp</label><input id="airTemp" type="number" value="20" placeholder="°C" /></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: AIRFLOW & MATERIAL -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">01</span><span class="sec-name">Airflow &amp; Duct Material</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Design Airflow</label><input id="flow" type="number" step="any" placeholder="0" value="2000"><span class="unit">m³/hr</span></div>
+        <div class="field">
+          <label>Duct Material</label>
+          <select id="material" onchange="onMaterialChange()">
+            <option value="0.09" selected>Galvanised steel (GSS)</option>
+            <option value="0.09">PU insulated panel</option>
+            <option value="0.9">Fabric duct</option>
+            <option value="3.0">Flexible duct</option>
+            <option value="custom">Custom roughness…</option>
+          </select>
+        </div>
+        <div class="field"><label>Roughness (ε)</label><input id="roughness" type="number" step="any" value="0.09" disabled><span class="unit">mm</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: ROUND DUCT SIZING -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Round Duct Sizing</span></div>
+    <div class="sec-body">
+      <div class="method-toggle">
+        <button id="btn-velocity" class="active" onclick="setMethod('velocity')">Velocity Method</button>
+        <button id="btn-friction" onclick="setMethod('friction')">Equal Friction Method</button>
+      </div>
+      <div class="input-grid">
+        <div class="field" id="field-velocity"><label>Target Velocity</label><input id="targetVelocity" type="number" step="any" value="6"><span class="unit">m/s</span></div>
+        <div class="field" id="field-friction" style="display:none;"><label>Target Friction Rate</label><input id="targetFriction" type="number" step="any" value="1.0"><span class="unit">Pa/m</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box"><div class="rlabel">Calculated Diameter</div><div class="rvalue" id="out-diaCalc">–<small> mm</small></div></div>
+        <div class="result-box highlight"><div class="rlabel">Standard Duct Size</div><div class="rvalue" id="out-diaStd">–<small> mm</small></div></div>
+        <div class="result-box"><div class="rlabel">Actual Velocity</div><div class="rvalue" id="out-velActual">–<small> m/s</small></div></div>
+        <div class="result-box"><div class="rlabel">Friction Rate</div><div class="rvalue" id="out-frictionActual">–<small> Pa/m</small></div></div>
+        <div class="result-box"><div class="rlabel">Reynolds No.</div><div class="rvalue" id="out-re">–</div></div>
+      </div>
+      <div id="velocity-badge"></div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: FITTINGS & PRESSURE LOSS -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">03</span><span class="sec-name">Straight Length &amp; Fittings</span></div>
+    <div class="sec-body" style="padding-bottom:0;">
+      <div class="input-grid">
+        <div class="field"><label>Straight Duct Length</label><input id="straightLen" type="number" step="any" placeholder="0" value="25"><span class="unit">m</span></div>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr><th class="col-sn">#</th><th>Fitting</th><th class="num">L/D Ratio</th><th class="num">Qty</th><th class="num">Equiv. Length (m)</th><th></th></tr>
+      </thead>
+      <tbody id="fittings-body"></tbody>
+      <tfoot>
+        <tr class="subtotal-row">
+          <td colspan="4" class="label" style="text-align:right;">Total Equivalent Length</td>
+          <td class="col-amt" id="fittings-subtotal">0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button class="add-row-btn" onclick="addFittingRow()">+ Add fitting</button>
+  </div>
+
+  <div class="summary">
+    <div class="summary-note">
+      <b>How this works —</b> Section 02 solves for the duct diameter needed to hit your target velocity, or (Equal Friction method) the diameter that gives your target Pa/m at this airflow, using Darcy-Weisbach with the Swamee-Jain friction factor for air. It then rounds up to the nearest standard duct size and recalculates actual velocity and friction at that size. Section 03 converts fittings to equivalent straight length and totals the pressure loss over the full run — use this total against the standard duct size above for fan static pressure selection.
+    </div>
+    <div class="summary-calc">
+      <div class="sc-row"><span class="lbl">Total Equivalent Length</span><span class="val" id="sum-len">0.00 m</span></div>
+      <div class="sc-row"><span class="lbl">Friction Rate (at standard size)</span><span class="val" id="sum-rate">0.00 Pa/m</span></div>
+      <div class="sc-row grand">
+        <div style="display:flex; justify-content:space-between; width:100%;">
+          <span class="lbl">Total Pressure Loss</span><span class="val" id="sum-total">0.00 Pa</span>
+        </div>
+        <div class="grand-alt"><span><b id="sum-mmwg">0</b> mmWG</span><span><b id="sum-inwg">0</b> in.WG</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: RECTANGULAR EQUIVALENT -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">04</span><span class="sec-name">Rectangular Duct Equivalent</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Duct Width (a)</label><input id="rectA" type="number" step="any" placeholder="0" value="400"><span class="unit">mm</span></div>
+        <div class="field"><label>Duct Height (b)</label><input id="rectB" type="number" step="any" placeholder="0" value="250"><span class="unit">mm</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box highlight"><div class="rlabel">Equivalent Round Dia.</div><div class="rvalue" id="out-eqDia">–<small> mm</small></div></div>
+        <div class="result-box"><div class="rlabel">Cross-section Area</div><div class="rvalue" id="out-rectArea">–<small> m²</small></div></div>
+        <div class="result-box"><div class="rlabel">Velocity at This Size</div><div class="rvalue" id="out-rectVel">–<small> m/s</small></div></div>
+        <div class="result-box"><div class="rlabel">Aspect Ratio</div><div class="rvalue" id="out-aspect">–</div></div>
+      </div>
+      <div id="aspect-badge"></div>
+      <div class="footnote" style="margin:10px 0 0;">Equivalent diameter via the Huebscher equation (ASHRAE): De = 1.30 × (ab)^0.625 / (a+b)^0.25 — gives the round duct with equal friction loss and airflow capacity. Keep aspect ratio ≤ 4:1, ideally ≤ 3:1, to control pressure loss and sheet metal cost.</div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    Air properties assumed: density 1.2 kg/m³, kinematic viscosity 1.5×10⁻⁵ m²/s (approx. at the fluid temperature entered above). Fitting head-loss uses the equivalent length (L/D) method — for critical runs, cross-check high-loss fittings (dampers, take-offs) against manufacturer loss coefficients.
+  </div>
+
+</div>
+
+<script>
+const STD_SIZES_MM = [100,125,150,160,175,200,225,250,275,300,315,350,375,400,450,500,560,600,630,700,750,800,850,900,1000,1100,1200];
+
+const FITTING_DEFAULTS = [
+  ["90° elbow, smooth radius", 12],
+  ["90° elbow, mitred with vanes", 20],
+  ["Branch take-off (tee)", 30],
+  ["Volume control damper", 6],
+  ["Fire damper", 15],
+  ["Diffuser / grille collar", 25],
+];
+
+let currentMethod = 'velocity';
+let rowCounter = 0;
+
+function fmt(n, d){ d = d===undefined?2:d; return (isFinite(n)?n:0).toLocaleString('en-IN', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+function nearestStandardSize(d_mm){
+  for(const s of STD_SIZES_MM){ if(s >= d_mm) return s; }
+  return STD_SIZES_MM[STD_SIZES_MM.length-1];
+}
+
+function airFrictionFactor(Re, eps, D){
+  if(Re <= 0 || D <= 0) return 0;
+  const term = (eps/(3.7*D)) + (5.74/Math.pow(Re,0.9));
+  if(term <= 0) return 0;
+  return 0.25/Math.pow(Math.log10(term),2);
+}
+
+// Pa/m friction rate for a given diameter D(m), flow Q(m3/s), roughness eps(m)
+function frictionRateForDiameter(D, Q, eps){
+  const rho = 1.2, nu = 1.5e-5;
+  const area = Math.PI/4*D*D;
+  const V = area > 0 ? Q/area : 0;
+  const Re = V*D/nu;
+  const f = airFrictionFactor(Re, eps, D);
+  const ratePerM = D > 0 ? f * (1/D) * (rho*V*V/2) : 0;
+  return {V, Re, f, ratePerM};
+}
+
+function solveDiameterForFrictionRate(targetRate, Q, eps){
+  let lo = 0.02, hi = 3.0;
+  for(let i=0;i<60;i++){
+    const mid = (lo+hi)/2;
+    const r = frictionRateForDiameter(mid, Q, eps).ratePerM;
+    if(r > targetRate){ lo = mid; } else { hi = mid; }
+  }
+  return (lo+hi)/2;
+}
+
+function setMethod(m){
+  currentMethod = m;
+  document.getElementById('btn-velocity').classList.toggle('active', m==='velocity');
+  document.getElementById('btn-friction').classList.toggle('active', m==='friction');
+  document.getElementById('field-velocity').style.display = m==='velocity' ? '' : 'none';
+  document.getElementById('field-friction').style.display = m==='friction' ? '' : 'none';
+  recalcAll();
+}
+
+function onMaterialChange(){
+  const sel = document.getElementById('material');
+  const roughnessInput = document.getElementById('roughness');
+  if(sel.value === 'custom'){ roughnessInput.disabled = false; roughnessInput.focus(); }
+  else { roughnessInput.disabled = true; roughnessInput.value = sel.value; }
+  recalcAll();
+}
+
+function buildFittingRow(name, ldRatio){
+  rowCounter++;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="col-sn"></td>
+    <td class="col-desc"><input type="text" value="${name}"></td>
+    <td class="col-num"><input type="number" class="ld-input" min="0" step="any" value="${ldRatio}"></td>
+    <td class="col-num"><input type="number" class="qty-input" min="0" step="1" placeholder="0"></td>
+    <td class="col-amt" data-eqlen>0.00</td>
+    <td class="col-del"><button onclick="removeRow(this)">✕</button></td>
+  `;
+  tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recalcAll));
+  return tr;
+}
+function renumber(){ document.querySelectorAll('#fittings-body tr').forEach((tr,i) => tr.querySelector('.col-sn').textContent = i+1); }
+function addFittingRow(){ document.getElementById('fittings-body').appendChild(buildFittingRow('New fitting', 15)); renumber(); recalcAll(); }
+function removeRow(btn){ btn.closest('tr').remove(); renumber(); recalcAll(); }
+
+function recalcAll(){
+  const Q_m3hr = parseFloat(document.getElementById('flow').value) || 0;
+  const Q = Q_m3hr/3600;
+  const roughness_mm = parseFloat(document.getElementById('roughness').value) || 0;
+  const eps = roughness_mm/1000;
+
+  let D_calc = 0;
+  if(currentMethod === 'velocity'){
+    const targetV = parseFloat(document.getElementById('targetVelocity').value) || 0;
+    if(targetV > 0) D_calc = Math.sqrt(4*Q/(Math.PI*targetV));
+  } else {
+    const targetRate = parseFloat(document.getElementById('targetFriction').value) || 0;
+    if(targetRate > 0 && Q > 0) D_calc = solveDiameterForFrictionRate(targetRate, Q, eps);
+  }
+
+  const D_calc_mm = D_calc*1000;
+  const D_std_mm = D_calc_mm > 0 ? nearestStandardSize(D_calc_mm) : 0;
+  const D_std = D_std_mm/1000;
+
+  const res = D_std > 0 ? frictionRateForDiameter(D_std, Q, eps) : {V:0,Re:0,ratePerM:0};
+
+  document.getElementById('out-diaCalc').innerHTML = (D_calc_mm ? fmt(D_calc_mm,0) : '–') + '<small> mm</small>';
+  document.getElementById('out-diaStd').innerHTML = (D_std_mm ? fmt(D_std_mm,0) : '–') + '<small> mm</small>';
+  document.getElementById('out-velActual').innerHTML = fmt(res.V) + '<small> m/s</small>';
+  document.getElementById('out-frictionActual').innerHTML = fmt(res.ratePerM) + '<small> Pa/m</small>';
+  document.getElementById('out-re').textContent = res.Re ? Math.round(res.Re).toLocaleString('en-IN') : '–';
+
+  const vBadge = document.getElementById('velocity-badge');
+  if(res.V > 0){
+    if(res.V > 12){ vBadge.innerHTML = '<span class="badge warn">Velocity high — noise risk above ~10-12 m/s in occupied areas</span>'; }
+    else if(res.V < 3){ vBadge.innerHTML = '<span class="badge warn">Velocity low — oversized duct for the space available</span>'; }
+    else { vBadge.innerHTML = '<span class="badge good">Within typical duct design range</span>'; }
+  } else { vBadge.innerHTML = ''; }
+
+  // Fittings
+  let fittingsLenTotal = 0;
+  document.querySelectorAll('#fittings-body tr').forEach(tr => {
+    const ld = parseFloat(tr.querySelector('.ld-input').value) || 0;
+    const qty = parseFloat(tr.querySelector('.qty-input').value) || 0;
+    const eqLen = D_std > 0 ? ld * D_std * qty : 0;
+    tr.querySelector('[data-eqlen]').textContent = fmt(eqLen);
+    fittingsLenTotal += eqLen;
+  });
+  document.getElementById('fittings-subtotal').textContent = fmt(fittingsLenTotal);
+
+  const straightLen = parseFloat(document.getElementById('straightLen').value) || 0;
+  const totalLen = straightLen + fittingsLenTotal;
+  const totalLoss = res.ratePerM * totalLen;
+
+  document.getElementById('sum-len').textContent = fmt(totalLen) + ' m';
+  document.getElementById('sum-rate').textContent = fmt(res.ratePerM) + ' Pa/m';
+  document.getElementById('sum-total').textContent = fmt(totalLoss) + ' Pa';
+  document.getElementById('sum-mmwg').textContent = fmt(totalLoss * 0.10197);
+  document.getElementById('sum-inwg').textContent = fmt(totalLoss * 0.0040147, 3);
+
+  // Rectangular equivalent
+  const a = parseFloat(document.getElementById('rectA').value) || 0;
+  const b = parseFloat(document.getElementById('rectB').value) || 0;
+  let eqDia = 0, rectArea = 0, rectVel = 0, aspect = 0;
+  if(a > 0 && b > 0){
+    eqDia = 1.30 * Math.pow(a*b, 0.625) / Math.pow(a+b, 0.25);
+    rectArea = (a/1000)*(b/1000);
+    rectVel = rectArea > 0 ? Q/rectArea : 0;
+    aspect = Math.max(a,b)/Math.min(a,b);
+  }
+  document.getElementById('out-eqDia').innerHTML = (eqDia ? fmt(eqDia,0) : '–') + '<small> mm</small>';
+  document.getElementById('out-rectArea').innerHTML = (rectArea ? fmt(rectArea,3) : '–') + '<small> m²</small>';
+  document.getElementById('out-rectVel').innerHTML = (rectVel ? fmt(rectVel) : '–') + '<small> m/s</small>';
+  document.getElementById('out-aspect').textContent = aspect ? fmt(aspect,2) + ' : 1' : '–';
+
+  const aBadge = document.getElementById('aspect-badge');
+  if(aspect > 0){
+    if(aspect > 4){ aBadge.innerHTML = '<span class="badge warn">Aspect ratio above 4:1 — high pressure loss and sheet metal cost</span>'; }
+    else if(aspect > 3){ aBadge.innerHTML = '<span class="badge warn">Aspect ratio above 3:1 — consider a squarer profile if space allows</span>'; }
+    else { aBadge.innerHTML = '<span class="badge good">Aspect ratio within recommended range</span>'; }
+  } else { aBadge.innerHTML = ''; }
+}
+
+// Init
+FITTING_DEFAULTS.forEach(([name, ld]) => document.getElementById('fittings-body').appendChild(buildFittingRow(name, ld)));
+renumber();
+
+['flow','roughness','targetVelocity','targetFriction','straightLen','rectA','rectB'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcAll);
+});
+document.getElementById('material').addEventListener('change', recalcAll);
+
+recalcAll();
+</script>
+
+</body>
+</html>
