@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Chiller Selection Advisor</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --ink:#1B2A4A; --ink-soft:#425072; --steel:#6B7A99;
+    --rule:#C9CDD6; --rule-strong:#1B2A4A; --accent:#C6621F; --accent-soft:#F3E1D2;
+    --amber:#E8A33D; --good:#2E7D5B; --warn:#B8452F; --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px), var(--paper);
+    color:var(--ink); font-family: -apple-system, 'Segoe UI', Inter, sans-serif; padding: 28px 16px 80px;
+  }
+  .sheet{ max-width: 1040px; margin: 0 auto; }
+  .titleblock{ border: 2px solid var(--rule-strong); display:grid; grid-template-columns: 1.4fr 1fr; margin-bottom: 26px; }
+  .tb-main{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); }
+  .tb-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .tb-title{ font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; }
+  .tb-sub{ font-size: 13px; color: var(--steel); margin: 0; }
+  .tb-fields{ display:grid; grid-template-columns: 1fr 1fr; }
+  .tb-field{ padding: 10px 16px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .tb-field input{ width:100%; border:none; background:transparent; font-size: 13px; font-weight: 600; color: var(--ink); outline:none; font-family:'IBM Plex Mono', monospace; }
+
+  .section{ margin-bottom: 22px; border: 1.5px solid var(--rule-strong); background: #FFFEFB; }
+  .sec-head{ display:flex; align-items:baseline; gap:10px; background: var(--ink); color: #FDFCF8; padding: 9px 16px; }
+  .sec-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); font-weight: 700; }
+  .sec-name{ font-size: 14px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .sec-body{ padding: 16px 18px; }
+
+  .input-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .field input, .field select{ width:100%; padding: 8px 9px; border: 1px solid var(--rule); background: var(--paper); font-size: 13px; color: var(--ink); font-family:'IBM Plex Mono', monospace; outline:none; }
+  .field input:focus, .field select:focus{ border-color: var(--accent); background: #fff; }
+  .field .unit{ color: var(--steel); font-size:11px; margin-left:4px; }
+
+  .results-strip{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule-strong); border: 1.5px solid var(--rule-strong); margin-top: 16px; }
+  .result-box{ background:#FFFEFB; padding: 10px 14px; }
+  .result-box .rlabel{ font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .result-box .rvalue{ font-family:'IBM Plex Mono', monospace; font-size: 16px; font-weight:700; color: var(--ink); }
+  .result-box .rvalue small{ font-size:11px; font-weight:400; color:var(--steel); }
+  .result-box.highlight{ background: var(--accent-soft); }
+  .result-box.highlight .rvalue{ color: var(--accent); }
+
+  .recommend-box{
+    border: 1.5px solid var(--accent); background: var(--accent-soft); padding: 14px 16px; margin-top:16px;
+  }
+  .recommend-box .rb-label{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing:1px; text-transform:uppercase; color: var(--accent); margin-bottom:6px; }
+  .recommend-box .rb-value{ font-size: 17px; font-weight:800; color: var(--ink); margin-bottom:6px; }
+  .recommend-box .rb-reason{ font-size: 12.5px; color: var(--ink-soft); line-height:1.5; }
+
+  .badge{ display:inline-block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing:0.5px; padding: 3px 8px; margin-top:10px; border:1px solid; }
+  .badge.good{ color: var(--good); border-color: var(--good); background: rgba(46,125,91,0.08); }
+  .badge.warn{ color: var(--warn); border-color: var(--warn); background: rgba(184,69,47,0.08); }
+
+  .summary{ border: 2px solid var(--rule-strong); margin-top: 30px; }
+  .summary-head{ background: var(--ink); color:#FDFCF8; padding: 10px 18px; font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .spec-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .spec-cell{ padding: 14px 18px; border-top: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .spec-cell .lbl{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .spec-cell .val{ font-family:'IBM Plex Mono', monospace; font-size: 15px; font-weight:700; color: var(--ink); }
+  .spec-cell .val small{ font-size: 11px; font-weight: 400; color: var(--steel); }
+
+  .toolbar{ max-width:1040px; margin: 0 auto 14px; display:flex; justify-content:flex-end; gap:8px; }
+  .toolbar button{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding: 8px 14px; border: 1.5px solid var(--ink); background: #FFFEFB; color: var(--ink); cursor:pointer; }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{ max-width:1040px; margin: 18px auto 0; font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace; line-height:1.6; }
+  .disclaimer{
+    max-width:1040px; margin: 14px auto 0; border: 1.5px solid var(--warn); background: rgba(184,69,47,0.06);
+    padding: 12px 16px; font-size: 12px; color: var(--ink-soft); line-height:1.6;
+  }
+  .disclaimer b{ color: var(--warn); }
+
+  @media print{ body{ background:#fff; padding:0; } .toolbar{ display:none; } .section{ break-inside: avoid; } }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">Chiller Plant Selection Worksheet</div>
+      <h1 class="tb-title">Chiller Selection Advisor</h1>
+      <p class="tb-sub">Type, condenser, efficiency &amp; redundancy guidance</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Project</label><input placeholder="Project name" /></div>
+      <div class="tb-field"><label>Application</label><input placeholder="e.g. Office, Hospital, Data centre" /></div>
+      <div class="tb-field"><label>Date</label><input placeholder="DD / MM / YYYY" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: LOAD -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">01</span><span class="sec-name">Load Requirement</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Total Cooling Load</label><input id="totalLoad" type="number" step="any" value="300"><span class="unit">TR</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: CHILLER TYPE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Chiller Type Guidance</span></div>
+    <div class="sec-body">
+      <div class="recommend-box">
+        <div class="rb-label">Suggested type — by capacity range</div>
+        <div class="rb-value" id="out-chillerType">–</div>
+        <div class="rb-reason" id="out-chillerReason">–</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: CONDENSER TYPE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">03</span><span class="sec-name">Condenser Type Decision</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field">
+          <label>Water Source Available?</label>
+          <select id="waterAvailable"><option value="yes">Yes</option><option value="no">No</option></select>
+        </div>
+        <div class="field">
+          <label>Space for Cooling Tower / Plant Room</label>
+          <select id="spaceAvailable"><option value="ample">Ample</option><option value="limited">Limited</option></select>
+        </div>
+        <div class="field">
+          <label>Efficiency Priority</label>
+          <select id="efficiencyPriority"><option value="high">High (lowest kW/TR)</option><option value="standard">Standard</option></select>
+        </div>
+      </div>
+      <div class="recommend-box">
+        <div class="rb-label">Suggested condenser type</div>
+        <div class="rb-value" id="out-condenserType">–</div>
+        <div class="rb-reason" id="out-condenserReason">–</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: EFFICIENCY & ENERGY -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">04</span><span class="sec-name">Efficiency Benchmark &amp; Energy Estimate</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field">
+          <label>Chiller Category</label>
+          <select id="effCategory" onchange="onCategoryChange()">
+            <option value="1.15">Air-cooled scroll (~1.15 kW/TR)</option>
+            <option value="1.05">Air-cooled screw (~1.05 kW/TR)</option>
+            <option value="0.70" selected>Water-cooled screw (~0.70 kW/TR)</option>
+            <option value="0.60">Water-cooled centrifugal (~0.60 kW/TR)</option>
+            <option value="0.40">Magnetic bearing centrifugal, VFD (~0.40 kW/TR)</option>
+          </select>
+        </div>
+        <div class="field"><label>Efficiency</label><input id="effValue" type="number" step="any" value="0.70"><span class="unit">kW/TR</span></div>
+        <div class="field"><label>Annual Operating Hours</label><input id="opHours" type="number" step="any" value="3000"><span class="unit">hr/yr</span></div>
+        <div class="field"><label>Average Load Factor</label><input id="opLoadFactor" type="number" step="any" value="70"><span class="unit">%</span></div>
+        <div class="field"><label>Electricity Tariff</label><input id="opTariff" type="number" step="any" value="8.5"><span class="unit">₹/kWh</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box"><div class="rlabel">Peak Electrical Demand</div><div class="rvalue" id="out-peakKW">–<small> kW</small></div></div>
+        <div class="result-box highlight"><div class="rlabel">Estimated Annual Energy</div><div class="rvalue" id="out-annualKWh">–<small> kWh</small></div></div>
+        <div class="result-box highlight"><div class="rlabel">Estimated Annual Energy Cost</div><div class="rvalue" id="out-annualCost">–</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: REDUNDANCY -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">05</span><span class="sec-name">Redundancy &amp; Configuration</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field">
+          <label>Duty Modules (N)</label>
+          <select id="dutyModules"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option></select>
+        </div>
+        <div class="field">
+          <label>Redundancy Level</label>
+          <select id="redundancyLevel">
+            <option value="0">N (no standby)</option>
+            <option value="1" selected>N+1 (one standby module)</option>
+            <option value="2">N+2 (two standby modules)</option>
+          </select>
+        </div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box"><div class="rlabel">Capacity per Module</div><div class="rvalue" id="out-modCapacity">–<small> TR</small></div></div>
+        <div class="result-box"><div class="rlabel">Total Installed Modules</div><div class="rvalue" id="out-totalModules">–</div></div>
+        <div class="result-box highlight"><div class="rlabel">Total Installed Capacity</div><div class="rvalue" id="out-installedCapacity">–<small> TR</small></div></div>
+        <div class="result-box"><div class="rlabel">Installed Redundancy Margin</div><div class="rvalue" id="out-redundancyMargin">–<small> %</small></div></div>
+      </div>
+      <div id="redundancy-badge"></div>
+      <div class="footnote" style="margin:10px 0 0;">For critical applications (hospitals, data centres, process cooling) N+1 or N+2 is standard practice. Splitting load across more, smaller modules also improves part-load efficiency, since chillers typically run more hours at partial load than at full design load.</div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-head">Selection Summary — for Vendor RFQ</div>
+    <div class="spec-grid">
+      <div class="spec-cell"><div class="lbl">Total Load</div><div class="val" id="spec-load">–<small> TR</small></div></div>
+      <div class="spec-cell"><div class="lbl">Suggested Type</div><div class="val" id="spec-type">–</div></div>
+      <div class="spec-cell"><div class="lbl">Condenser Type</div><div class="val" id="spec-condenser">–</div></div>
+      <div class="spec-cell"><div class="lbl">Target Efficiency</div><div class="val" id="spec-eff">–<small> kW/TR</small></div></div>
+      <div class="spec-cell"><div class="lbl">Configuration</div><div class="val" id="spec-config">–</div></div>
+      <div class="spec-cell"><div class="lbl">Est. Annual Energy Cost</div><div class="val" id="spec-cost">–</div></div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <b>Note —</b> This advisor gives generic, standards-based guidance (capacity ranges, typical efficiency bands, and redundancy practice) to frame your RFQ and shortlist chiller types. It is not tied to any specific manufacturer's proprietary selection software. Final model, exact kW/TR, sound levels, footprint and part-load performance must be confirmed against your chosen manufacturer's official selection tool and datasheet before finalizing the order.
+  </div>
+
+</div>
+
+<script>
+function fmt(n, d){ d = d===undefined?0:d; return (isFinite(n)?n:0).toLocaleString('en-IN', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+function getChillerTypeGuidance(tr){
+  if(tr <= 0) return {type:'–', reason:'Enter a total cooling load to see guidance.'};
+  if(tr < 50) return {type:'Scroll chiller (air-cooled)', reason:'Small loads are well served by modular scroll compressors — simple, reliable, low maintenance, and available in packaged air-cooled units.'};
+  if(tr < 150) return {type:'Scroll (modular) or Screw chiller', reason:'This range works with either multiple modular scroll units for redundancy, or a single screw chiller for a more compact footprint.'};
+  if(tr < 500) return {type:'Screw chiller (air or water-cooled)', reason:'Screw compressors are the standard choice at this capacity — good efficiency, moderate cost, and available in both air- and water-cooled configurations.'};
+  if(tr < 1000) return {type:'Screw or Centrifugal chiller', reason:'At this scale, centrifugal chillers start becoming cost-competitive with screw chillers and offer better efficiency at full load — compare both on a life-cycle cost basis.'};
+  return {type:'Centrifugal chiller', reason:'Large capacities favour centrifugal compressors for the best full-load efficiency and lowest cost per TR installed.'};
+}
+
+function getCondenserGuidance(waterAvail, space, effPriority){
+  if(waterAvail === 'no'){
+    return {type:'Air-cooled', reason:'No water source available — air-cooled is effectively mandatory unless a water source is developed. Simpler installation, no cooling tower or water treatment needed.'};
+  }
+  if(space === 'limited'){
+    return {type:'Air-cooled', reason:'Limited space rules out a cooling tower and pump room. Air-cooled trades some efficiency for a smaller overall footprint.'};
+  }
+  if(effPriority === 'high'){
+    return {type:'Water-cooled', reason:'Water is available, space allows a cooling tower, and efficiency is the priority — water-cooled chillers typically run 30–40% lower kW/TR than air-cooled equivalents.'};
+  }
+  return {type:'Water-cooled or Air-cooled — both viable', reason:'Water-cooled gives better efficiency and smaller chiller footprint but adds a cooling tower, pump room, and water treatment scope. Air-cooled is simpler to install and maintain. Decide based on capex budget and O&M capability on site.'};
+}
+
+function onCategoryChange(){
+  const sel = document.getElementById('effCategory');
+  document.getElementById('effValue').value = sel.value;
+  recalcAll();
+}
+
+function recalcAll(){
+  const totalLoad = parseFloat(document.getElementById('totalLoad').value) || 0;
+
+  // Section 2: chiller type
+  const typeInfo = getChillerTypeGuidance(totalLoad);
+  document.getElementById('out-chillerType').textContent = typeInfo.type;
+  document.getElementById('out-chillerReason').textContent = typeInfo.reason;
+
+  // Section 3: condenser type
+  const waterAvail = document.getElementById('waterAvailable').value;
+  const space = document.getElementById('spaceAvailable').value;
+  const effPriority = document.getElementById('efficiencyPriority').value;
+  const condInfo = getCondenserGuidance(waterAvail, space, effPriority);
+  document.getElementById('out-condenserType').textContent = condInfo.type;
+  document.getElementById('out-condenserReason').textContent = condInfo.reason;
+
+  // Section 4: efficiency & energy
+  const effValue = parseFloat(document.getElementById('effValue').value) || 0;
+  const opHours = parseFloat(document.getElementById('opHours').value) || 0;
+  const opLoadFactor = (parseFloat(document.getElementById('opLoadFactor').value) || 0) / 100;
+  const opTariff = parseFloat(document.getElementById('opTariff').value) || 0;
+
+  const peakKW = totalLoad * effValue;
+  const annualKWh = peakKW * opHours * opLoadFactor;
+  const annualCost = annualKWh * opTariff;
+
+  document.getElementById('out-peakKW').innerHTML = fmt(peakKW,1) + '<small> kW</small>';
+  document.getElementById('out-annualKWh').innerHTML = fmt(annualKWh) + '<small> kWh</small>';
+  document.getElementById('out-annualCost').textContent = '₹ ' + fmt(annualCost);
+
+  // Section 5: redundancy
+  const N = parseInt(document.getElementById('dutyModules').value) || 1;
+  const redundancyExtra = parseInt(document.getElementById('redundancyLevel').value) || 0;
+  const modCapacity = N > 0 ? totalLoad / N : 0;
+  const totalModules = N + redundancyExtra;
+  const installedCapacity = modCapacity * totalModules;
+  const redundancyMargin = totalLoad > 0 ? ((installedCapacity - totalLoad) / totalLoad * 100) : 0;
+
+  document.getElementById('out-modCapacity').innerHTML = fmt(modCapacity,1) + '<small> TR</small>';
+  document.getElementById('out-totalModules').textContent = totalModules;
+  document.getElementById('out-installedCapacity').innerHTML = fmt(installedCapacity,1) + '<small> TR</small>';
+  document.getElementById('out-redundancyMargin').innerHTML = fmt(redundancyMargin,0) + '<small> %</small>';
+
+  const rBadge = document.getElementById('redundancy-badge');
+  if(redundancyExtra === 0){
+    rBadge.innerHTML = '<span class="badge warn">No standby module — any single chiller failure/service takes down full capacity</span>';
+  } else {
+    rBadge.innerHTML = '<span class="badge good">' + totalModules + ' × ' + fmt(modCapacity,0) + ' TR modules — full load covered even with ' + redundancyExtra + ' module(s) down</span>';
+  }
+
+  // Summary spec sheet
+  document.getElementById('spec-load').innerHTML = fmt(totalLoad,1) + '<small> TR</small>';
+  document.getElementById('spec-type').textContent = typeInfo.type;
+  document.getElementById('spec-condenser').textContent = condInfo.type;
+  document.getElementById('spec-eff').innerHTML = fmt(effValue,2) + '<small> kW/TR</small>';
+  document.getElementById('spec-config').textContent = totalModules + ' × ' + fmt(modCapacity,0) + ' TR';
+  document.getElementById('spec-cost').textContent = '₹ ' + fmt(annualCost) + '/yr';
+}
+
+['totalLoad','waterAvailable','spaceAvailable','efficiencyPriority','effValue','opHours','opLoadFactor','opTariff','dutyModules','redundancyLevel'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcAll);
+  document.getElementById(id).addEventListener('change', recalcAll);
+});
+
+recalcAll();
+</script>
+
+</body>
+</html>
