@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cleanroom / Hospital ACH Calculator</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --ink:#1B2A4A; --ink-soft:#425072; --steel:#6B7A99;
+    --rule:#C9CDD6; --rule-strong:#1B2A4A; --accent:#C6621F; --accent-soft:#F3E1D2;
+    --amber:#E8A33D; --good:#2E7D5B; --warn:#B8452F; --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px), var(--paper);
+    color:var(--ink); font-family: -apple-system, 'Segoe UI', Inter, sans-serif; padding: 28px 16px 80px;
+  }
+  .sheet{ max-width: 1180px; margin: 0 auto; }
+  .titleblock{ border: 2px solid var(--rule-strong); display:grid; grid-template-columns: 1.4fr 1fr; margin-bottom: 26px; }
+  .tb-main{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); }
+  .tb-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .tb-title{ font-size: 28px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; }
+  .tb-sub{ font-size: 13px; color: var(--steel); margin: 0; }
+  .tb-fields{ display:grid; grid-template-columns: 1fr 1fr; }
+  .tb-field{ padding: 10px 16px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .tb-field input{ width:100%; border:none; background:transparent; font-size: 13px; font-weight: 600; color: var(--ink); outline:none; font-family:'IBM Plex Mono', monospace; }
+
+  .section{ margin-bottom: 22px; border: 1.5px solid var(--rule-strong); background: #FFFEFB; }
+  .sec-head{ display:flex; align-items:baseline; gap:10px; background: var(--ink); color: #FDFCF8; padding: 9px 16px; }
+  .sec-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); font-weight: 700; }
+  .sec-name{ font-size: 14px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+
+  .table-scroll{ overflow-x:auto; }
+  table{ width:100%; border-collapse: collapse; }
+  thead th{ font-family:'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--steel); text-align: left; padding: 8px 8px; border-bottom: 1.5px solid var(--rule-strong); background: #F1EEE5; }
+  thead th.num{ text-align:right; }
+  tbody td{ padding: 6px 8px; border-bottom: 1px solid var(--rule); font-size: 12.5px; vertical-align: middle; }
+  .col-sn{ width: 28px; color:var(--steel); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .col-desc input{ width:100%; border:none; background:transparent; font-size:12.5px; color:var(--ink); outline:none; font-family:inherit; }
+  .col-type select{ width:100%; padding:4px 5px; border:1px solid var(--rule); background:var(--paper); font-family:'IBM Plex Mono', monospace; font-size:11px; min-width:170px; }
+  .col-num{ width:70px; text-align:right; }
+  .col-num input{ width:100%; border:none; border-bottom:1px dashed var(--rule); background:transparent; text-align:right; font-family:'IBM Plex Mono', monospace; font-size:12.5px; padding: 3px 4px; outline:none; color:var(--ink); }
+  .col-num input:focus{ background: var(--accent-soft); border-bottom:1px solid var(--accent); }
+  .col-amt{ width:95px; text-align:right; font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--ink); font-size:12.5px; }
+  .col-pressure{ width:90px; text-align:center; font-family:'IBM Plex Mono', monospace; font-size:11px; font-weight:700; }
+  .col-pressure.positive{ color: var(--good); }
+  .col-pressure.negative{ color: var(--warn); }
+  .col-pressure.neutral{ color: var(--steel); }
+  .col-del{ width:24px; text-align:center; }
+  .col-del button{ border:none; background:transparent; color:var(--rule-strong); opacity:0.35; cursor:pointer; font-size:15px; line-height:1; }
+  .col-del button:hover{ opacity:1; color:var(--accent); }
+  .subtotal-row td{ background: #F1EEE5; font-weight:700; border-bottom:none; }
+  .subtotal-row .label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-soft); }
+  .add-row-btn{ display:block; width:100%; text-align:left; padding: 7px 16px; background:#FFFEFB; border:none; border-top: 1px dashed var(--rule); color: var(--accent); font-size:12px; font-family:'IBM Plex Mono', monospace; cursor:pointer; }
+  .add-row-btn:hover{ background: var(--accent-soft); }
+
+  .ref-table{ margin: 0; }
+  .ref-table th, .ref-table td{ font-size:12px; }
+  .sec-body{ padding: 16px 18px; }
+
+  .toolbar{ max-width:1180px; margin: 0 auto 14px; display:flex; justify-content:flex-end; gap:8px; }
+  .toolbar button{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding: 8px 14px; border: 1.5px solid var(--ink); background: #FFFEFB; color: var(--ink); cursor:pointer; }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{ max-width:1180px; margin: 18px auto 0; font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace; line-height:1.6; }
+  .disclaimer{ max-width:1180px; margin: 14px auto 0; border: 1.5px solid var(--warn); background: rgba(184,69,47,0.06); padding: 12px 16px; font-size: 12px; color: var(--ink-soft); line-height:1.6; }
+  .disclaimer b{ color: var(--warn); }
+
+  @media print{ body{ background:#fff; padding:0; } .toolbar{ display:none; } .add-row-btn{ display:none; } .col-del{ display:none; } .section{ break-inside: avoid; } }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">Ventilation Design Worksheet</div>
+      <h1 class="tb-title">Cleanroom / Hospital ACH Calculator</h1>
+      <p class="tb-sub">Room-by-room air change rate, supply airflow &amp; pressure relationship</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Project</label><input placeholder="Project name" /></div>
+      <div class="tb-field"><label>Facility</label><input placeholder="e.g. Hospital block, Pharma plant" /></div>
+      <div class="tb-field"><label>Date</label><input placeholder="DD / MM / YYYY" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: ROOM-BY-ROOM CALCULATION -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">01</span><span class="sec-name">Room-by-Room Air Change Calculation</span></div>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sn">#</th>
+          <th style="min-width:120px;">Room</th>
+          <th style="min-width:170px;">Room Type</th>
+          <th class="num">L (m)</th>
+          <th class="num">W (m)</th>
+          <th class="num">H (m)</th>
+          <th class="num">Volume (m³)</th>
+          <th class="num">ACH Used</th>
+          <th class="num">Supply Air (CMH)</th>
+          <th class="num">Supply Air (CFM)</th>
+          <th class="num">Min OA (CMH)</th>
+          <th style="width:90px;">Pressure</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="room-body"></tbody>
+    </table>
+    </div>
+    <button class="add-row-btn" onclick="addRow()">+ Add room</button>
+    <div class="footnote" style="margin:10px 18px 14px;">Selecting a Room Type auto-fills a typical ACH value (editable) from the reference ranges in Section 02. Supply Air (CMH) = ACH × Volume; CFM = CMH × 0.589. Minimum OA (CMH) uses the outdoor-air ACH reference where applicable.</div>
+  </div>
+
+  <!-- SECTION 2: REFERENCE RANGES -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Reference — Typical ACH Ranges</span></div>
+    <div class="sec-body">
+      <div class="table-scroll">
+      <table class="ref-table">
+        <thead><tr><th>Room / Space Type</th><th>Total ACH (typical)</th><th>Min. Outdoor ACH</th><th>Pressure Relationship</th></tr></thead>
+        <tbody id="reference-table-body"></tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <b>Note —</b> ACH values shown are typical published guidance ranges (broadly aligned with ASHRAE 170 for healthcare spaces and ISO 14644-1 correlation for cleanrooms) intended to frame preliminary sizing — exact required values vary by the specific standard, edition, and jurisdiction your project is contracted against (e.g. ASHRAE 170, NABH, WHO GMP, EU GMP Annex 1, local health authority guidelines). Always confirm the governing standard cited in your project specification before finalizing airflow rates, and validate cleanroom classification through actual particle count testing post-installation.
+  </div>
+
+</div>
+
+<script>
+// Reference data: [type, achMin, achMax, achDefault, oaAchMin, pressure]
+const ROOM_TYPES = {
+  "Operating Room":            { achMin: 20, achMax: 25, achDefault: 20, oaAch: 4,  pressure: "positive" },
+  "Delivery Room":              { achMin: 20, achMax: 25, achDefault: 20, oaAch: 4,  pressure: "positive" },
+  "ICU":                        { achMin: 6,  achMax: 6,  achDefault: 6,  oaAch: 2,  pressure: "positive" },
+  "Isolation Room (Airborne)":  { achMin: 12, achMax: 12, achDefault: 12, oaAch: 2,  pressure: "negative" },
+  "Patient Room (General)":     { achMin: 6,  achMax: 6,  achDefault: 6,  oaAch: 2,  pressure: "neutral" },
+  "Emergency / Trauma":         { achMin: 6,  achMax: 6,  achDefault: 6,  oaAch: 2,  pressure: "neutral" },
+  "Laboratory":                 { achMin: 6,  achMax: 12, achDefault: 8,  oaAch: 2,  pressure: "negative" },
+  "Nursery":                    { achMin: 6,  achMax: 6,  achDefault: 6,  oaAch: 2,  pressure: "positive" },
+  "Pharmacy — Sterile Compounding": { achMin: 20, achMax: 40, achDefault: 30, oaAch: null, pressure: "positive" },
+  "Corridor (Public)":          { achMin: 2,  achMax: 2,  achDefault: 2,  oaAch: null, pressure: "neutral" },
+  "Cleanroom — ISO 5":          { achMin: 240, achMax: 480, achDefault: 350, oaAch: null, pressure: "positive" },
+  "Cleanroom — ISO 6":          { achMin: 150, achMax: 240, achDefault: 190, oaAch: null, pressure: "positive" },
+  "Cleanroom — ISO 7":          { achMin: 60,  achMax: 90,  achDefault: 75,  oaAch: null, pressure: "positive" },
+  "Cleanroom — ISO 8":          { achMin: 20,  achMax: 40,  achDefault: 30,  oaAch: null, pressure: "positive" },
+};
+
+const CFM_PER_CMH = 0.589;
+let rowCounter = 0;
+
+function fmt(n, d){ d = d===undefined?1:d; return (isFinite(n)?n:0).toLocaleString('en-IN', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+function buildRow(name, type, l, w, h){
+  rowCounter++;
+  const tr = document.createElement('tr');
+  const options = Object.keys(ROOM_TYPES).map(t => `<option value="${t}" ${t===type?'selected':''}>${t}</option>`).join('');
+  tr.innerHTML = `
+    <td class="col-sn"></td>
+    <td class="col-desc"><input type="text" value="${name}"></td>
+    <td class="col-type"><select class="type-input">${options}</select></td>
+    <td class="col-num"><input type="number" class="l-input" min="0" step="any" value="${l}"></td>
+    <td class="col-num"><input type="number" class="w-input" min="0" step="any" value="${w}"></td>
+    <td class="col-num"><input type="number" class="h-input" min="0" step="any" value="${h}"></td>
+    <td class="col-amt" data-volume>0.0</td>
+    <td class="col-num"><input type="number" class="ach-input" min="0" step="any" value="0"></td>
+    <td class="col-amt" data-cmh>0.0</td>
+    <td class="col-amt" data-cfm>0.0</td>
+    <td class="col-amt" data-oa>–</td>
+    <td class="col-pressure" data-pressure>–</td>
+    <td class="col-del"><button onclick="removeRow(this)">✕</button></td>
+  `;
+  tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recalcAll));
+  tr.querySelector('.type-input').addEventListener('change', () => { applyTypeDefaults(tr); recalcAll(); });
+  return tr;
+}
+
+function renumber(){ document.querySelectorAll('#room-body tr').forEach((tr,i) => tr.querySelector('.col-sn').textContent = i+1); }
+
+function applyTypeDefaults(tr){
+  const type = tr.querySelector('.type-input').value;
+  const ref = ROOM_TYPES[type];
+  if(ref){ tr.querySelector('.ach-input').value = ref.achDefault; }
+}
+
+function addRow(){
+  const tr = buildRow('New room', 'Patient Room (General)', 5, 4, 3);
+  document.getElementById('room-body').appendChild(tr);
+  applyTypeDefaults(tr);
+  renumber();
+  recalcAll();
+}
+function removeRow(btn){ btn.closest('tr').remove(); renumber(); recalcAll(); }
+
+function recalcAll(){
+  document.querySelectorAll('#room-body tr').forEach(tr => {
+    const l = parseFloat(tr.querySelector('.l-input').value) || 0;
+    const w = parseFloat(tr.querySelector('.w-input').value) || 0;
+    const h = parseFloat(tr.querySelector('.h-input').value) || 0;
+    const ach = parseFloat(tr.querySelector('.ach-input').value) || 0;
+    const type = tr.querySelector('.type-input').value;
+    const ref = ROOM_TYPES[type];
+
+    const volume = l * w * h;
+    const cmh = ach * volume;
+    const cfm = cmh * CFM_PER_CMH;
+    const oaCmh = ref && ref.oaAch ? ref.oaAch * volume : null;
+
+    tr.querySelector('[data-volume]').textContent = fmt(volume);
+    tr.querySelector('[data-cmh]').textContent = fmt(cmh,0);
+    tr.querySelector('[data-cfm]').textContent = fmt(cfm,0);
+    tr.querySelector('[data-oa]').textContent = oaCmh !== null ? fmt(oaCmh,0) : '–';
+
+    const pCell = tr.querySelector('[data-pressure]');
+    if(ref){
+      const label = ref.pressure === 'positive' ? '+ Positive' : ref.pressure === 'negative' ? '– Negative' : 'Neutral';
+      pCell.textContent = label;
+      pCell.className = 'col-pressure ' + ref.pressure;
+    }
+  });
+}
+
+// Reference table
+const refBody = document.getElementById('reference-table-body');
+Object.entries(ROOM_TYPES).forEach(([type, ref]) => {
+  const achText = ref.achMin === ref.achMax ? ref.achMin : ref.achMin + '–' + ref.achMax;
+  const oaText = ref.oaAch ? ref.oaAch : '–';
+  const pText = ref.pressure === 'positive' ? 'Positive' : ref.pressure === 'negative' ? 'Negative' : 'Neutral';
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${type}</td><td>${achText}</td><td>${oaText}</td><td>${pText}</td>`;
+  refBody.appendChild(tr);
+});
+
+// Init rooms
+[
+  ['OT-1', 'Operating Room', 7, 6, 3.2],
+  ['ICU Bay', 'ICU', 10, 8, 3],
+  ['General Ward', 'Patient Room (General)', 8, 6, 3],
+].forEach(([name, type, l, w, h]) => {
+  const tr = buildRow(name, type, l, w, h);
+  document.getElementById('room-body').appendChild(tr);
+  applyTypeDefaults(tr);
+});
+renumber();
+recalcAll();
+</script>
+
+</body>
+</html>
