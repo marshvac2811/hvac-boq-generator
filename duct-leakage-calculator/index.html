@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Duct Leakage Class Calculator</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --ink:#1B2A4A; --ink-soft:#425072; --steel:#6B7A99;
+    --rule:#C9CDD6; --rule-strong:#1B2A4A; --accent:#C6621F; --accent-soft:#F3E1D2;
+    --amber:#E8A33D; --good:#2E7D5B; --warn:#B8452F; --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px), var(--paper);
+    color:var(--ink); font-family: -apple-system, 'Segoe UI', Inter, sans-serif; padding: 28px 16px 80px;
+  }
+  .sheet{ max-width: 1040px; margin: 0 auto; }
+  .titleblock{ border: 2px solid var(--rule-strong); display:grid; grid-template-columns: 1.4fr 1fr; margin-bottom: 26px; }
+  .tb-main{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); }
+  .tb-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .tb-title{ font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; }
+  .tb-sub{ font-size: 13px; color: var(--steel); margin: 0; }
+  .tb-fields{ display:grid; grid-template-columns: 1fr 1fr; }
+  .tb-field{ padding: 10px 16px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .tb-field input{ width:100%; border:none; background:transparent; font-size: 13px; font-weight: 600; color: var(--ink); outline:none; font-family:'IBM Plex Mono', monospace; }
+
+  .section{ margin-bottom: 22px; border: 1.5px solid var(--rule-strong); background: #FFFEFB; }
+  .sec-head{ display:flex; align-items:baseline; gap:10px; background: var(--ink); color: #FDFCF8; padding: 9px 16px; }
+  .sec-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); font-weight: 700; }
+  .sec-name{ font-size: 14px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .sec-body{ padding: 16px 18px; }
+
+  .input-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .field input, .field select{ width:100%; padding: 8px 9px; border: 1px solid var(--rule); background: var(--paper); font-size: 13px; color: var(--ink); font-family:'IBM Plex Mono', monospace; outline:none; }
+  .field input:focus, .field select:focus{ border-color: var(--accent); background: #fff; }
+  .field .unit{ color: var(--steel); font-size:11px; margin-left:4px; }
+
+  table{ width:100%; border-collapse: collapse; }
+  thead th{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); text-align: left; padding: 8px 10px; border-bottom: 1.5px solid var(--rule-strong); background: #F1EEE5; }
+  thead th.num{ text-align:right; }
+  tbody td{ padding: 6px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; vertical-align: middle; }
+  .col-sn{ width: 32px; color:var(--steel); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .col-desc input{ width:100%; border:none; background:transparent; font-size:13px; color:var(--ink); outline:none; font-family:inherit; }
+  .col-num{ width:95px; text-align:right; }
+  .col-num input{ width:100%; border:none; border-bottom:1px dashed var(--rule); background:transparent; text-align:right; font-family:'IBM Plex Mono', monospace; font-size:13px; padding: 3px 4px; outline:none; color:var(--ink); }
+  .col-num input:focus{ background: var(--accent-soft); border-bottom:1px solid var(--accent); }
+  .col-amt{ width:110px; text-align:right; font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--ink); }
+  .col-del{ width:28px; text-align:center; }
+  .col-del button{ border:none; background:transparent; color:var(--rule-strong); opacity:0.35; cursor:pointer; font-size:15px; line-height:1; }
+  .col-del button:hover{ opacity:1; color:var(--accent); }
+  .subtotal-row td{ background: #F1EEE5; font-weight:700; border-bottom:none; }
+  .subtotal-row .label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-soft); }
+  .add-row-btn{ display:block; width:100%; text-align:left; padding: 7px 16px; background:#FFFEFB; border:none; border-top: 1px dashed var(--rule); color: var(--accent); font-size:12px; font-family:'IBM Plex Mono', monospace; cursor:pointer; }
+  .add-row-btn:hover{ background: var(--accent-soft); }
+
+  .results-strip{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule-strong); border: 1.5px solid var(--rule-strong); margin-top: 16px; }
+  .result-box{ background:#FFFEFB; padding: 10px 14px; }
+  .result-box .rlabel{ font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .result-box .rvalue{ font-family:'IBM Plex Mono', monospace; font-size: 16px; font-weight:700; color: var(--ink); }
+  .result-box .rvalue small{ font-size:11px; font-weight:400; color:var(--steel); }
+  .result-box.highlight{ background: var(--accent-soft); }
+  .result-box.highlight .rvalue{ color: var(--accent); }
+
+  .badge{ display:inline-block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing:0.5px; padding: 3px 8px; margin-top:10px; border:1px solid; }
+  .badge.good{ color: var(--good); border-color: var(--good); background: rgba(46,125,91,0.08); }
+  .badge.warn{ color: var(--warn); border-color: var(--warn); background: rgba(184,69,47,0.08); }
+
+  .ref-table{ margin-top:14px; }
+  .ref-table th, .ref-table td{ font-size:12px; }
+
+  .toolbar{ max-width:1040px; margin: 0 auto 14px; display:flex; justify-content:flex-end; gap:8px; }
+  .toolbar button{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding: 8px 14px; border: 1.5px solid var(--ink); background: #FFFEFB; color: var(--ink); cursor:pointer; }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{ max-width:1040px; margin: 18px auto 0; font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace; line-height:1.6; }
+
+  @media print{ body{ background:#fff; padding:0; } .toolbar{ display:none; } .add-row-btn{ display:none; } .col-del{ display:none; } .section{ break-inside: avoid; } }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">Duct Leakage Test Worksheet</div>
+      <h1 class="tb-title">Duct Leakage Class Calculator</h1>
+      <p class="tb-sub">SMACNA leakage class — determination &amp; allowable leakage rate</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Project</label><input placeholder="Project name" /></div>
+      <div class="tb-field"><label>Duct Section / System</label><input placeholder="e.g. Main SA riser, L1-L5" /></div>
+      <div class="tb-field"><label>Date</label><input placeholder="DD / MM / YYYY" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: DUCT SURFACE AREA -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">01</span><span class="sec-name">Duct Surface Area</span></div>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sn">#</th>
+          <th>Section</th>
+          <th class="num">Width (mm)</th>
+          <th class="num">Height (mm)</th>
+          <th class="num">Diameter (mm)</th>
+          <th class="num">Length (m)</th>
+          <th class="num">Surface Area (m²)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="duct-body"></tbody>
+      <tfoot>
+        <tr class="subtotal-row">
+          <td colspan="6" class="label" style="text-align:right;">Total Duct Surface Area</td>
+          <td class="col-amt" id="duct-subtotal">0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    <button class="add-row-btn" onclick="addDuctRow()">+ Add section</button>
+    <div class="footnote" style="margin:10px 18px 14px;">For rectangular ducts enter Width and Height, leave Diameter blank. For round ducts enter Diameter only, leave Width/Height blank. Surface area = perimeter × length.</div>
+  </div>
+
+  <!-- SECTION 2: LEAKAGE CLASS DETERMINATION -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Leakage Class Determination (from test result)</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Test Static Pressure</label><input id="testPressure" type="number" step="any" value="500"><span class="unit">Pa</span></div>
+        <div class="field"><label>Measured Leakage Rate</label><input id="measuredLeakage" type="number" step="any" value="20"><span class="unit">L/s</span></div>
+        <div class="field">
+          <label>Specified Target Class</label>
+          <select id="targetClass">
+            <option value="3">Class 3</option>
+            <option value="6" selected>Class 6</option>
+            <option value="12">Class 12</option>
+            <option value="24">Class 24</option>
+            <option value="48">Class 48</option>
+          </select>
+        </div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box highlight"><div class="rlabel">Calculated Leakage Class (CL)</div><div class="rvalue" id="out-calcClass">–</div></div>
+        <div class="result-box"><div class="rlabel">Leakage Rate</div><div class="rvalue" id="out-leakagePct">–<small> % of design airflow*</small></div></div>
+      </div>
+      <div id="test-badge"></div>
+      <div class="footnote" style="margin:10px 0 0;">*Leakage as % of design airflow needs the system's design airflow entered separately if you want that figure — this calculator focuses on the CL determination itself, which is independent of system airflow.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: MAXIMUM ALLOWABLE LEAKAGE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">03</span><span class="sec-name">Maximum Allowable Leakage (for spec compliance)</span></div>
+    <div class="sec-body">
+      <div class="results-strip">
+        <div class="result-box highlight"><div class="rlabel">Max Allowable Leakage</div><div class="rvalue" id="out-maxLeakageLs">–<small> L/s</small></div></div>
+        <div class="result-box highlight"><div class="rlabel">Max Allowable Leakage</div><div class="rvalue" id="out-maxLeakageCfm">–<small> cfm</small></div></div>
+      </div>
+      <div class="footnote" style="margin:10px 0 0;">This is the number to write into the leakage test certificate: at the test pressure and duct area above, the measured leakage must be at or below this figure to pass the specified target class.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: REFERENCE TABLE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">04</span><span class="sec-name">Reference — Typical Class by Duct Pressure</span></div>
+    <div class="sec-body">
+      <table class="ref-table">
+        <thead><tr><th>Duct Pressure Classification</th><th>Typical Static Pressure</th><th>Commonly Specified Leakage Class</th></tr></thead>
+        <tbody>
+          <tr><td>Low pressure</td><td>≤ 500 Pa (2 in.wg)</td><td>Class 24 (often not leak-tested)</td></tr>
+          <tr><td>Medium pressure</td><td>500–1500 Pa (2–6 in.wg)</td><td>Class 6 or Class 12</td></tr>
+          <tr><td>High pressure</td><td>&gt; 1500 Pa (6 in.wg)</td><td>Class 3 or Class 6</td></tr>
+        </tbody>
+      </table>
+      <div class="footnote" style="margin:10px 0 0;">General industry guidance per SMACNA HVAC Duct Construction Standards — always follow the project specification's stated class over this general reference.</div>
+    </div>
+  </div>
+
+  <div class="footnote">
+    Leakage Class formula (SMACNA): CL = (Q × 100) / (A × P^0.65), where Q = leakage rate (cfm), A = duct surface area (ft²), P = test static pressure (in. w.g.). This calculator converts your metric inputs internally and reports CL in its native (imperial) definition, since that's how leakage class is specified in tender documents and test certificates.
+  </div>
+
+</div>
+
+<script>
+const M2_TO_FT2 = 10.7639;
+const PA_TO_INWG = 1/249.089;
+const LS_TO_CFM = 2.11888;
+const STANDARD_CLASSES = [3, 6, 12, 24, 48];
+
+function fmt(n, d){ d = d===undefined?2:d; return (isFinite(n)?n:0).toLocaleString('en-IN', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+function buildDuctRow(name, w, h, dia, len){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="col-sn"></td>
+    <td class="col-desc"><input type="text" value="${name}"></td>
+    <td class="col-num"><input type="number" class="w-input" min="0" step="any" value="${w||''}" placeholder="–"></td>
+    <td class="col-num"><input type="number" class="h-input" min="0" step="any" value="${h||''}" placeholder="–"></td>
+    <td class="col-num"><input type="number" class="dia-input" min="0" step="any" value="${dia||''}" placeholder="–"></td>
+    <td class="col-num"><input type="number" class="len-input" min="0" step="any" value="${len||''}" placeholder="0"></td>
+    <td class="col-amt" data-area>0.00</td>
+    <td class="col-del"><button onclick="removeDuctRow(this)">✕</button></td>
+  `;
+  tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recalcAll));
+  return tr;
+}
+function renumberDuct(){ document.querySelectorAll('#duct-body tr').forEach((tr,i) => tr.querySelector('.col-sn').textContent = i+1); }
+function addDuctRow(){ document.getElementById('duct-body').appendChild(buildDuctRow('New section')); renumberDuct(); recalcAll(); }
+function removeDuctRow(btn){ btn.closest('tr').remove(); renumberDuct(); recalcAll(); }
+
+function recalcAll(){
+  // Section 1: surface area
+  let totalArea = 0;
+  document.querySelectorAll('#duct-body tr').forEach(tr => {
+    const w = parseFloat(tr.querySelector('.w-input').value) || 0;
+    const h = parseFloat(tr.querySelector('.h-input').value) || 0;
+    const dia = parseFloat(tr.querySelector('.dia-input').value) || 0;
+    const len = parseFloat(tr.querySelector('.len-input').value) || 0;
+    let perimeter_m = 0;
+    if(dia > 0){
+      perimeter_m = Math.PI * (dia/1000);
+    } else if(w > 0 && h > 0){
+      perimeter_m = 2 * ((w/1000) + (h/1000));
+    }
+    const area = perimeter_m * len;
+    tr.querySelector('[data-area]').textContent = fmt(area);
+    totalArea += area;
+  });
+  document.getElementById('duct-subtotal').textContent = fmt(totalArea);
+
+  // Section 2: leakage class determination
+  const testPressurePa = parseFloat(document.getElementById('testPressure').value) || 0;
+  const measuredLeakageLs = parseFloat(document.getElementById('measuredLeakage').value) || 0;
+
+  const A_ft2 = totalArea * M2_TO_FT2;
+  const P_inwg = testPressurePa * PA_TO_INWG;
+  const Q_cfm = measuredLeakageLs * LS_TO_CFM;
+
+  let calcClass = 0;
+  if(A_ft2 > 0 && P_inwg > 0){
+    calcClass = (Q_cfm * 100) / (A_ft2 * Math.pow(P_inwg, 0.65));
+  }
+  document.getElementById('out-calcClass').textContent = calcClass ? fmt(calcClass,1) : '–';
+
+  const targetClass = parseFloat(document.getElementById('targetClass').value) || 0;
+  const tBadge = document.getElementById('test-badge');
+  if(calcClass > 0 && targetClass > 0){
+    if(calcClass <= targetClass){
+      tBadge.innerHTML = '<span class="badge good">PASS — measured leakage meets Class ' + targetClass + ' (calculated CL ' + fmt(calcClass,1) + ' ≤ ' + targetClass + ')</span>';
+    } else {
+      tBadge.innerHTML = '<span class="badge warn">FAIL — calculated CL ' + fmt(calcClass,1) + ' exceeds specified Class ' + targetClass + '</span>';
+    }
+  } else {
+    tBadge.innerHTML = '';
+  }
+
+  document.getElementById('out-leakagePct').innerHTML = '<small>Enter design airflow separately to compute % of design flow</small>';
+
+  // Section 3: max allowable leakage
+  let maxLeakageCfm = 0;
+  if(A_ft2 > 0 && P_inwg > 0 && targetClass > 0){
+    maxLeakageCfm = targetClass * A_ft2 * Math.pow(P_inwg, 0.65) / 100;
+  }
+  const maxLeakageLs = maxLeakageCfm / LS_TO_CFM;
+
+  document.getElementById('out-maxLeakageLs').innerHTML = (maxLeakageLs ? fmt(maxLeakageLs) : '–') + '<small> L/s</small>';
+  document.getElementById('out-maxLeakageCfm').innerHTML = (maxLeakageCfm ? fmt(maxLeakageCfm) : '–') + '<small> cfm</small>';
+}
+
+// Init
+[
+  ['Main SA riser', 600, 400, null, 20],
+  ['Branch duct 1', 400, 250, null, 12],
+].forEach(([name,w,h,dia,len]) => document.getElementById('duct-body').appendChild(buildDuctRow(name,w,h,dia,len)));
+renumberDuct();
+
+['testPressure','measuredLeakage'].forEach(id => document.getElementById(id).addEventListener('input', recalcAll));
+document.getElementById('targetClass').addEventListener('change', recalcAll);
+
+recalcAll();
+</script>
+
+</body>
+</html>
