@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Refrigerant Pipe Sizing Calculator</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --ink:#1B2A4A; --ink-soft:#425072; --steel:#6B7A99;
+    --rule:#C9CDD6; --rule-strong:#1B2A4A; --accent:#C6621F; --accent-soft:#F3E1D2;
+    --amber:#E8A33D; --good:#2E7D5B; --warn:#B8452F; --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px), var(--paper);
+    color:var(--ink); font-family: -apple-system, 'Segoe UI', Inter, sans-serif; padding: 28px 16px 80px;
+  }
+  .sheet{ max-width: 1040px; margin: 0 auto; }
+  .titleblock{ border: 2px solid var(--rule-strong); display:grid; grid-template-columns: 1.4fr 1fr; margin-bottom: 26px; }
+  .tb-main{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); }
+  .tb-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .tb-title{ font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; }
+  .tb-sub{ font-size: 13px; color: var(--steel); margin: 0; }
+  .tb-fields{ display:grid; grid-template-columns: 1fr 1fr; }
+  .tb-field{ padding: 10px 16px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .tb-field input{ width:100%; border:none; background:transparent; font-size: 13px; font-weight: 600; color: var(--ink); outline:none; font-family:'IBM Plex Mono', monospace; }
+
+  .section{ margin-bottom: 22px; border: 1.5px solid var(--rule-strong); background: #FFFEFB; }
+  .sec-head{ display:flex; align-items:baseline; gap:10px; background: var(--ink); color: #FDFCF8; padding: 9px 16px; }
+  .sec-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); font-weight: 700; }
+  .sec-name{ font-size: 14px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .sec-body{ padding: 16px 18px; }
+
+  .input-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .field input, .field select{ width:100%; padding: 8px 9px; border: 1px solid var(--rule); background: var(--paper); font-size: 13px; color: var(--ink); font-family:'IBM Plex Mono', monospace; outline:none; }
+  .field input:focus, .field select:focus{ border-color: var(--accent); background: #fff; }
+  .field .unit{ color: var(--steel); font-size:11px; margin-left:4px; }
+  .field input:disabled{ color: var(--steel); background: #F1EEE5; }
+
+  .results-strip{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule-strong); border: 1.5px solid var(--rule-strong); margin-top: 16px; }
+  .result-box{ background:#FFFEFB; padding: 10px 14px; }
+  .result-box .rlabel{ font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .result-box .rvalue{ font-family:'IBM Plex Mono', monospace; font-size: 16px; font-weight:700; color: var(--ink); }
+  .result-box .rvalue small{ font-size:11px; font-weight:400; color:var(--steel); }
+  .result-box.highlight{ background: var(--accent-soft); }
+  .result-box.highlight .rvalue{ color: var(--accent); }
+
+  .badge{ display:inline-block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing:0.5px; padding: 3px 8px; margin-top:10px; border:1px solid; }
+  .badge.good{ color: var(--good); border-color: var(--good); background: rgba(46,125,91,0.08); }
+  .badge.warn{ color: var(--warn); border-color: var(--warn); background: rgba(184,69,47,0.08); }
+
+  .summary{ border: 2px solid var(--rule-strong); margin-top: 30px; }
+  .summary-head{ background: var(--ink); color:#FDFCF8; padding: 10px 18px; font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .spec-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .spec-cell{ padding: 14px 18px; border-top: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .spec-cell .lbl{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .spec-cell .val{ font-family:'IBM Plex Mono', monospace; font-size: 16px; font-weight:700; color: var(--ink); }
+  .spec-cell .val small{ font-size: 11px; font-weight: 400; color: var(--steel); }
+
+  .toolbar{ max-width:1040px; margin: 0 auto 14px; display:flex; justify-content:flex-end; gap:8px; }
+  .toolbar button{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding: 8px 14px; border: 1.5px solid var(--ink); background: #FFFEFB; color: var(--ink); cursor:pointer; }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{ max-width:1040px; margin: 18px auto 0; font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace; line-height:1.6; }
+  .disclaimer{ max-width:1040px; margin: 14px auto 0; border: 1.5px solid var(--warn); background: rgba(184,69,47,0.06); padding: 12px 16px; font-size: 12px; color: var(--ink-soft); line-height:1.6; }
+  .disclaimer b{ color: var(--warn); }
+
+  @media print{ body{ background:#fff; padding:0; } .toolbar{ display:none; } .section{ break-inside: avoid; } }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">Refrigerant Piping Worksheet</div>
+      <h1 class="tb-title">Refrigerant Pipe Sizing</h1>
+      <p class="tb-sub">Suction &amp; liquid line sizing — velocity method, standard copper sizes</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Project</label><input placeholder="Project name" /></div>
+      <div class="tb-field"><label>System Tag</label><input placeholder="e.g. AC-01 / IDU-3" /></div>
+      <div class="tb-field"><label>Date</label><input placeholder="DD / MM / YYYY" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: SYSTEM & REFRIGERANT DATA -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">01</span><span class="sec-name">System &amp; Refrigerant Data</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Cooling Capacity</label><input id="capacityKW" type="number" step="any" value="14"><span class="unit">kW</span></div>
+        <div class="field">
+          <label>Refrigerant</label>
+          <select id="refrigerant" onchange="onRefrigerantChange()">
+            <option value="R410A" selected>R410A</option>
+            <option value="R32">R32</option>
+            <option value="R22">R22</option>
+            <option value="R134a">R134a</option>
+          </select>
+        </div>
+        <div class="field"><label>Refrigerating Effect</label><input id="refEffect" type="number" step="any" value="155" disabled><span class="unit">kJ/kg</span></div>
+        <div class="field"><label>Suction Vapour Density</label><input id="vaporDensity" type="number" step="any" value="38" disabled><span class="unit">kg/m³</span></div>
+        <div class="field"><label>Liquid Density</label><input id="liquidDensity" type="number" step="any" value="1050" disabled><span class="unit">kg/m³</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box highlight"><div class="rlabel">Mass Flow Rate</div><div class="rvalue" id="out-massFlow">–<small> kg/hr</small></div></div>
+        <div class="result-box"><div class="rlabel">Capacity Equivalent</div><div class="rvalue" id="out-capTR">–<small> TR</small></div></div>
+      </div>
+      <div class="footnote" style="margin:10px 0 0;">Properties shown are typical published values at standard AC conditions (~5°C evaporating / ~45°C condensing) — actual values shift with operating conditions. Editable if you have more specific data for the application.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: SUCTION LINE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Suction Line Sizing</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Target Velocity</label><input id="suctionVelocity" type="number" step="any" value="10"><span class="unit">m/s</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box"><div class="rlabel">Required Bore</div><div class="rvalue" id="out-suctionDiaCalc">–<small> mm</small></div></div>
+        <div class="result-box highlight"><div class="rlabel">Standard Tube (OD)</div><div class="rvalue" id="out-suctionStd">–<small> mm</small></div></div>
+        <div class="result-box"><div class="rlabel">Actual Velocity</div><div class="rvalue" id="out-suctionVelActual">–<small> m/s</small></div></div>
+      </div>
+      <div id="suction-badge"></div>
+      <div class="footnote" style="margin:10px 0 0;">Design velocity for horizontal suction runs commonly falls in the 8–15 m/s range in field practice (varies by reference and application). Vertical risers need a minimum of ~2.5 m/s to entrain oil back to the compressor — undersizing risers, not oversizing, is the real risk here.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: LIQUID LINE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">03</span><span class="sec-name">Liquid Line Sizing</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Target Velocity</label><input id="liquidVelocity" type="number" step="any" value="1.2"><span class="unit">m/s</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box"><div class="rlabel">Required Bore</div><div class="rvalue" id="out-liquidDiaCalc">–<small> mm</small></div></div>
+        <div class="result-box highlight"><div class="rlabel">Standard Tube (OD)</div><div class="rvalue" id="out-liquidStd">–<small> mm</small></div></div>
+        <div class="result-box"><div class="rlabel">Actual Velocity</div><div class="rvalue" id="out-liquidVelActual">–<small> m/s</small></div></div>
+      </div>
+      <div id="liquid-badge"></div>
+      <div class="footnote" style="margin:10px 0 0;">Liquid line velocity is normally kept under ~1.5 m/s to limit pressure drop, noise, and the risk of flash gas forming before the expansion device — oil return isn't a concern here since liquid carries oil freely.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: PRESSURE DROP ESTIMATE -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">04</span><span class="sec-name">Pressure Drop Estimate</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Suction Line — Equiv. Length</label><input id="suctionLen" type="number" step="any" value="25"><span class="unit">m</span></div>
+        <div class="field"><label>Liquid Line — Equiv. Length</label><input id="liquidLen" type="number" step="any" value="25"><span class="unit">m</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box"><div class="rlabel">Suction Pressure Drop</div><div class="rvalue" id="out-suctionDP">–<small> kPa</small></div></div>
+        <div class="result-box"><div class="rlabel">Liquid Pressure Drop</div><div class="rvalue" id="out-liquidDP">–<small> kPa</small></div></div>
+      </div>
+      <div class="footnote" style="margin:10px 0 0;">Order-of-magnitude estimate via Darcy-Weisbach using typical refrigerant viscosity values — treat as a sense-check, not a precise figure. A suction-side pressure drop translates to a compressor suction temperature/capacity penalty; keep total suction drop modest (rule of thumb: well under 1–2°C equivalent saturation shift) on long runs.</div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-head">Selection Summary</div>
+    <div class="spec-grid">
+      <div class="spec-cell"><div class="lbl">Refrigerant</div><div class="val" id="spec-refrigerant">–</div></div>
+      <div class="spec-cell"><div class="lbl">Capacity</div><div class="val" id="spec-capacity">–<small> kW</small></div></div>
+      <div class="spec-cell"><div class="lbl">Suction Line</div><div class="val" id="spec-suction">–<small> mm OD</small></div></div>
+      <div class="spec-cell"><div class="lbl">Liquid Line</div><div class="val" id="spec-liquid">–<small> mm OD</small></div></div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <b>Note —</b> This calculator sizes refrigerant lines from first-principles (mass flow, target velocity, standard copper tube sizes) using typical published refrigerant properties at standard AC operating conditions — it is not tied to any specific manufacturer's proprietary piping design software or capacity-derating tables. Refrigerant piping design directly affects oil return and compressor reliability, so treat this as a preliminary sizing pass: confirm final pipe sizes, riser oil-trap requirements, and long-line capacity correction against the equipment manufacturer's official piping design guide before installation.
+  </div>
+
+</div>
+
+<script>
+const REFRIGERANT_PROPS = {
+  R410A: { refEffect: 155, vaporDensity: 38, liquidDensity: 1050, vaporVisc: 13.5e-6, liquidVisc: 0.10e-3 },
+  R32:   { refEffect: 230, vaporDensity: 28, liquidDensity: 1000, vaporVisc: 13.0e-6, liquidVisc: 0.11e-3 },
+  R22:   { refEffect: 163, vaporDensity: 23, liquidDensity: 1150, vaporVisc: 12.5e-6, liquidVisc: 0.18e-3 },
+  R134a: { refEffect: 148, vaporDensity: 15, liquidDensity: 1240, vaporVisc: 11.5e-6, liquidVisc: 0.19e-3 },
+};
+
+// Standard copper refrigeration tube OD sizes (mm)
+const STD_TUBE_OD_MM = [6.35, 9.52, 12.7, 15.88, 19.05, 22.22, 25.4, 28.58, 31.75, 34.93, 41.28, 53.98, 63.5, 76.2];
+const WALL_THICKNESS_MM = 0.9; // approx typical for refrigeration-grade copper tube at these sizes
+
+function fmt(n, d){ d = d===undefined?2:d; return (isFinite(n)?n:0).toLocaleString('en-IN', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+function nearestTubeOD(boreRequired_mm){
+  for(const od of STD_TUBE_OD_MM){
+    const bore = od - 2*WALL_THICKNESS_MM;
+    if(bore >= boreRequired_mm) return {od, bore};
+  }
+  const last = STD_TUBE_OD_MM[STD_TUBE_OD_MM.length-1];
+  return {od:last, bore: last - 2*WALL_THICKNESS_MM};
+}
+
+function airFrictionFactor(Re, eps, D){
+  if(Re <= 0 || D <= 0) return 0;
+  const term = (eps/(3.7*D)) + (5.74/Math.pow(Re,0.9));
+  if(term <= 0) return 0;
+  return 0.25/Math.pow(Math.log10(term),2);
+}
+
+function onRefrigerantChange(){
+  const ref = document.getElementById('refrigerant').value;
+  const p = REFRIGERANT_PROPS[ref];
+  document.getElementById('refEffect').value = p.refEffect;
+  document.getElementById('vaporDensity').value = p.vaporDensity;
+  document.getElementById('liquidDensity').value = p.liquidDensity;
+  recalcAll();
+}
+
+function recalcAll(){
+  const capacityKW = parseFloat(document.getElementById('capacityKW').value) || 0;
+  const refEffect = parseFloat(document.getElementById('refEffect').value) || 0;
+  const vaporDensity = parseFloat(document.getElementById('vaporDensity').value) || 0;
+  const liquidDensity = parseFloat(document.getElementById('liquidDensity').value) || 0;
+  const ref = document.getElementById('refrigerant').value;
+  const visc = REFRIGERANT_PROPS[ref];
+
+  const massFlowKgS = refEffect > 0 ? capacityKW / refEffect : 0;
+  const massFlowKgHr = massFlowKgS * 3600;
+  const capTR = capacityKW / 3.517;
+
+  document.getElementById('out-massFlow').innerHTML = fmt(massFlowKgHr,1) + '<small> kg/hr</small>';
+  document.getElementById('out-capTR').innerHTML = fmt(capTR,1) + '<small> TR</small>';
+
+  // --- Suction line ---
+  const suctionTargetV = parseFloat(document.getElementById('suctionVelocity').value) || 0;
+  const suctionVolFlow = vaporDensity > 0 ? massFlowKgS / vaporDensity : 0; // m3/s
+  const suctionBoreCalc = suctionTargetV > 0 ? Math.sqrt(4*suctionVolFlow/(Math.PI*suctionTargetV)) * 1000 : 0; // mm
+  const suctionTube = nearestTubeOD(suctionBoreCalc);
+  const suctionBoreM = suctionTube.bore / 1000;
+  const suctionAreaStd = Math.PI/4 * suctionBoreM * suctionBoreM;
+  const suctionVelActual = suctionAreaStd > 0 ? suctionVolFlow / suctionAreaStd : 0;
+
+  document.getElementById('out-suctionDiaCalc').innerHTML = fmt(suctionBoreCalc,1) + '<small> mm</small>';
+  document.getElementById('out-suctionStd').innerHTML = fmt(suctionTube.od,2) + '<small> mm OD</small>';
+  document.getElementById('out-suctionVelActual').innerHTML = fmt(suctionVelActual,2) + '<small> m/s</small>';
+
+  const sBadge = document.getElementById('suction-badge');
+  if(suctionVelActual > 0){
+    if(suctionVelActual < 2.5){ sBadge.innerHTML = '<span class="badge warn">Below 2.5 m/s — insufficient for oil return in vertical risers</span>'; }
+    else if(suctionVelActual > 15){ sBadge.innerHTML = '<span class="badge warn">Above 15 m/s — noise and pressure drop risk, consider a larger line</span>'; }
+    else { sBadge.innerHTML = '<span class="badge good">Within typical suction line design range</span>'; }
+  } else { sBadge.innerHTML = ''; }
+
+  // --- Liquid line ---
+  const liquidTargetV = parseFloat(document.getElementById('liquidVelocity').value) || 0;
+  const liquidVolFlow = liquidDensity > 0 ? massFlowKgS / liquidDensity : 0;
+  const liquidBoreCalc = liquidTargetV > 0 ? Math.sqrt(4*liquidVolFlow/(Math.PI*liquidTargetV)) * 1000 : 0;
+  const liquidTube = nearestTubeOD(liquidBoreCalc);
+  const liquidBoreM = liquidTube.bore / 1000;
+  const liquidAreaStd = Math.PI/4 * liquidBoreM * liquidBoreM;
+  const liquidVelActual = liquidAreaStd > 0 ? liquidVolFlow / liquidAreaStd : 0;
+
+  document.getElementById('out-liquidDiaCalc').innerHTML = fmt(liquidBoreCalc,1) + '<small> mm</small>';
+  document.getElementById('out-liquidStd').innerHTML = fmt(liquidTube.od,2) + '<small> mm OD</small>';
+  document.getElementById('out-liquidVelActual').innerHTML = fmt(liquidVelActual,2) + '<small> m/s</small>';
+
+  const lBadge = document.getElementById('liquid-badge');
+  if(liquidVelActual > 0){
+    if(liquidVelActual > 1.5){ lBadge.innerHTML = '<span class="badge warn">Above 1.5 m/s — increased pressure drop and flash gas risk</span>'; }
+    else { lBadge.innerHTML = '<span class="badge good">Within typical liquid line design range</span>'; }
+  } else { lBadge.innerHTML = ''; }
+
+  // --- Pressure drop estimate (Darcy-Weisbach) ---
+  const suctionLen = parseFloat(document.getElementById('suctionLen').value) || 0;
+  const liquidLen = parseFloat(document.getElementById('liquidLen').value) || 0;
+  const roughness = 0.0015e-3; // smooth drawn copper tube, m
+
+  function pressureDrop(V, D_m, density, mu, length){
+    if(D_m <= 0 || V <= 0) return 0;
+    const Re = density * V * D_m / mu;
+    const f = airFrictionFactor(Re, roughness, D_m);
+    return f * (length/D_m) * (density * V*V / 2) / 1000; // kPa
+  }
+
+  const suctionDP = pressureDrop(suctionVelActual, suctionBoreM, vaporDensity, visc.vaporVisc, suctionLen);
+  const liquidDP = pressureDrop(liquidVelActual, liquidBoreM, liquidDensity, visc.liquidVisc, liquidLen);
+
+  document.getElementById('out-suctionDP').innerHTML = fmt(suctionDP,2) + '<small> kPa</small>';
+  document.getElementById('out-liquidDP').innerHTML = fmt(liquidDP,2) + '<small> kPa</small>';
+
+  // Summary
+  document.getElementById('spec-refrigerant').textContent = ref;
+  document.getElementById('spec-capacity').innerHTML = fmt(capacityKW,1) + '<small> kW</small>';
+  document.getElementById('spec-suction').innerHTML = fmt(suctionTube.od,2) + '<small> mm OD</small>';
+  document.getElementById('spec-liquid').innerHTML = fmt(liquidTube.od,2) + '<small> mm OD</small>';
+}
+
+['capacityKW','suctionVelocity','liquidVelocity','suctionLen','liquidLen','refEffect','vaporDensity','liquidDensity'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcAll);
+});
+document.getElementById('refrigerant').addEventListener('change', onRefrigerantChange);
+
+recalcAll();
+</script>
+
+</body>
+</html>
