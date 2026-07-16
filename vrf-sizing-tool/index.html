@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VRF/VRV Sizing Tool</title>
+<style>
+  :root{
+    --paper:#F7F5EF; --ink:#1B2A4A; --ink-soft:#425072; --steel:#6B7A99;
+    --rule:#C9CDD6; --rule-strong:#1B2A4A; --accent:#C6621F; --accent-soft:#F3E1D2;
+    --amber:#E8A33D; --good:#2E7D5B; --warn:#B8452F; --paper-line: rgba(27,42,74,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 27px, var(--paper-line) 27px, var(--paper-line) 28px), var(--paper);
+    color:var(--ink); font-family: -apple-system, 'Segoe UI', Inter, sans-serif; padding: 28px 16px 80px;
+  }
+  .sheet{ max-width: 1100px; margin: 0 auto; }
+  .titleblock{ border: 2px solid var(--rule-strong); display:grid; grid-template-columns: 1.4fr 1fr; margin-bottom: 26px; }
+  .tb-main{ padding: 20px 22px; border-right: 2px solid var(--rule-strong); }
+  .tb-eyebrow{ font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 3px; color: var(--accent); text-transform: uppercase; margin-bottom: 6px; }
+  .tb-title{ font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin: 0 0 4px; }
+  .tb-sub{ font-size: 13px; color: var(--steel); margin: 0; }
+  .tb-fields{ display:grid; grid-template-columns: 1fr 1fr; }
+  .tb-field{ padding: 10px 16px; border-bottom: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .tb-field:nth-child(2n){ border-right:none; }
+  .tb-field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .tb-field input{ width:100%; border:none; background:transparent; font-size: 13px; font-weight: 600; color: var(--ink); outline:none; font-family:'IBM Plex Mono', monospace; }
+
+  .section{ margin-bottom: 22px; border: 1.5px solid var(--rule-strong); background: #FFFEFB; }
+  .sec-head{ display:flex; align-items:baseline; gap:10px; background: var(--ink); color: #FDFCF8; padding: 9px 16px; }
+  .sec-num{ font-family:'IBM Plex Mono', monospace; font-size: 12px; color: var(--amber); font-weight: 700; }
+  .sec-name{ font-size: 14px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; }
+  .sec-body{ padding: 16px 18px; }
+
+  .input-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .field label{ display:block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .field input, .field select{ width:100%; padding: 8px 9px; border: 1px solid var(--rule); background: var(--paper); font-size: 13px; color: var(--ink); font-family:'IBM Plex Mono', monospace; outline:none; }
+  .field input:focus, .field select:focus{ border-color: var(--accent); background: #fff; }
+  .field .unit{ color: var(--steel); font-size:11px; margin-left:4px; }
+
+  table{ width:100%; border-collapse: collapse; }
+  thead th{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); text-align: left; padding: 8px 10px; border-bottom: 1.5px solid var(--rule-strong); background: #F1EEE5; }
+  thead th.num{ text-align:right; }
+  tbody td{ padding: 6px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; vertical-align: middle; }
+  .col-sn{ width: 32px; color:var(--steel); font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .col-desc input{ width:100%; border:none; background:transparent; font-size:13px; color:var(--ink); outline:none; font-family:inherit; }
+  .col-num{ width:100px; text-align:right; }
+  .col-num input{ width:100%; border:none; border-bottom:1px dashed var(--rule); background:transparent; text-align:right; font-family:'IBM Plex Mono', monospace; font-size:13px; padding: 3px 4px; outline:none; color:var(--ink); }
+  .col-num input:focus{ background: var(--accent-soft); border-bottom:1px solid var(--accent); }
+  .col-amt{ width:110px; text-align:right; font-family:'IBM Plex Mono', monospace; font-weight:700; color:var(--ink); }
+  .col-del{ width:28px; text-align:center; }
+  .col-del button{ border:none; background:transparent; color:var(--rule-strong); opacity:0.35; cursor:pointer; font-size:15px; line-height:1; }
+  .col-del button:hover{ opacity:1; color:var(--accent); }
+  .subtotal-row td{ background: #F1EEE5; font-weight:700; border-bottom:none; }
+  .subtotal-row .label{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--ink-soft); }
+  .add-row-btn{ display:block; width:100%; text-align:left; padding: 7px 16px; background:#FFFEFB; border:none; border-top: 1px dashed var(--rule); color: var(--accent); font-size:12px; font-family:'IBM Plex Mono', monospace; cursor:pointer; }
+  .add-row-btn:hover{ background: var(--accent-soft); }
+
+  .results-strip{ display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rule-strong); border: 1.5px solid var(--rule-strong); margin-top: 16px; }
+  .result-box{ background:#FFFEFB; padding: 10px 14px; }
+  .result-box .rlabel{ font-family:'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 4px; }
+  .result-box .rvalue{ font-family:'IBM Plex Mono', monospace; font-size: 16px; font-weight:700; color: var(--ink); }
+  .result-box .rvalue small{ font-size:11px; font-weight:400; color:var(--steel); }
+  .result-box.highlight{ background: var(--accent-soft); }
+  .result-box.highlight .rvalue{ color: var(--accent); }
+
+  .recommend-box{ border: 1.5px solid var(--accent); background: var(--accent-soft); padding: 14px 16px; margin-top:16px; }
+  .recommend-box .rb-label{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing:1px; text-transform:uppercase; color: var(--accent); margin-bottom:6px; }
+  .recommend-box .rb-value{ font-size: 17px; font-weight:800; color: var(--ink); margin-bottom:6px; }
+  .recommend-box .rb-reason{ font-size: 12.5px; color: var(--ink-soft); line-height:1.5; }
+
+  .badge{ display:inline-block; font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing:0.5px; padding: 3px 8px; margin: 6px 0 0; border:1px solid; }
+  .badge.good{ color: var(--good); border-color: var(--good); background: rgba(46,125,91,0.08); }
+  .badge.warn{ color: var(--warn); border-color: var(--warn); background: rgba(184,69,47,0.08); }
+
+  .check-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; margin-top:14px; }
+  .check-item{ border: 1px solid var(--rule); padding: 10px 12px; }
+  .check-item .ci-label{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing:1px; text-transform:uppercase; color:var(--steel); margin-bottom:4px; }
+  .check-item .ci-value{ font-family:'IBM Plex Mono', monospace; font-size: 14px; font-weight:700; color:var(--ink); margin-bottom:6px; }
+
+  .summary{ border: 2px solid var(--rule-strong); margin-top: 30px; }
+  .summary-head{ background: var(--ink); color:#FDFCF8; padding: 10px 18px; font-family:'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .spec-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  .spec-cell{ padding: 14px 18px; border-top: 1px solid var(--rule); border-right: 1px solid var(--rule); }
+  .spec-cell .lbl{ font-family:'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--steel); margin-bottom: 5px; }
+  .spec-cell .val{ font-family:'IBM Plex Mono', monospace; font-size: 15px; font-weight:700; color: var(--ink); }
+  .spec-cell .val small{ font-size: 11px; font-weight: 400; color: var(--steel); }
+
+  .toolbar{ max-width:1100px; margin: 0 auto 14px; display:flex; justify-content:flex-end; gap:8px; }
+  .toolbar button{ font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:1px; text-transform:uppercase; padding: 8px 14px; border: 1.5px solid var(--ink); background: #FFFEFB; color: var(--ink); cursor:pointer; }
+  .toolbar button.primary{ background: var(--ink); color:#FDFCF8; }
+  .toolbar button:hover{ background: var(--accent); border-color:var(--accent); color:#fff; }
+
+  .footnote{ max-width:1100px; margin: 18px auto 0; font-size: 11px; color: var(--steel); font-family:'IBM Plex Mono', monospace; line-height:1.6; }
+  .disclaimer{ max-width:1100px; margin: 14px auto 0; border: 1.5px solid var(--warn); background: rgba(184,69,47,0.06); padding: 12px 16px; font-size: 12px; color: var(--ink-soft); line-height:1.6; }
+  .disclaimer b{ color: var(--warn); }
+  .table-scroll{ overflow-x:auto; }
+
+  @media print{ body{ background:#fff; padding:0; } .toolbar{ display:none; } .add-row-btn{ display:none; } .col-del{ display:none; } .section{ break-inside: avoid; } }
+  @media (max-width: 720px){
+    .titleblock, .tb-fields{ grid-template-columns: 1fr; }
+    .tb-main{ border-right:none; border-bottom:2px solid var(--rule-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Print / Save as PDF</button>
+</div>
+
+<div class="sheet">
+
+  <div class="titleblock">
+    <div class="tb-main">
+      <div class="tb-eyebrow">VRF System Sizing Worksheet</div>
+      <h1 class="tb-title">VRF / VRV Sizing Tool</h1>
+      <p class="tb-sub">Zone loads, indoor unit selection, outdoor unit sizing &amp; piping checks</p>
+    </div>
+    <div class="tb-fields">
+      <div class="tb-field"><label>Project</label><input placeholder="Project name" /></div>
+      <div class="tb-field"><label>System Tag</label><input placeholder="e.g. VRF-System-1" /></div>
+      <div class="tb-field"><label>Date</label><input placeholder="DD / MM / YYYY" /></div>
+      <div class="tb-field"><label>Prepared by</label><input placeholder="Your name / company" /></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: ZONE LOAD & IDU SELECTION -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">01</span><span class="sec-name">Zone Load &amp; Indoor Unit Selection</span></div>
+    <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-sn">#</th>
+          <th>Zone</th>
+          <th class="num">Area (m²)</th>
+          <th class="num">Load Factor (W/m²)</th>
+          <th class="num">Zone Load (kW)</th>
+          <th class="num">Suggested IDU (HP)</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="zone-body"></tbody>
+      <tfoot>
+        <tr class="subtotal-row">
+          <td colspan="4" class="label" style="text-align:right;">Total Indoor Unit Connected Capacity</td>
+          <td class="col-amt" id="zone-kw-subtotal">0.00</td>
+          <td class="col-amt" id="zone-hp-subtotal">0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>
+    <button class="add-row-btn" onclick="addZoneRow()">+ Add zone</button>
+    <div class="footnote" style="margin:10px 18px 14px;">Standard IDU capacity steps (HP): 0.8, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0 — each zone's load rounds up to the nearest standard size. 1 HP ≈ 2.8 kW nominal cooling (industry-common VRF convention).</div>
+  </div>
+
+  <!-- SECTION 2: OUTDOOR UNIT SIZING -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">02</span><span class="sec-name">Outdoor Unit Sizing</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Combination Ratio</label><input id="combRatio" type="number" step="any" value="130"><span class="unit">%</span></div>
+      </div>
+      <div class="results-strip">
+        <div class="result-box"><div class="rlabel">Total IDU Connected</div><div class="rvalue" id="out-iduTotal">–<small> HP</small></div></div>
+        <div class="result-box highlight"><div class="rlabel">Required ODU Capacity</div><div class="rvalue" id="out-oduRequired">–<small> HP</small></div></div>
+        <div class="result-box highlight"><div class="rlabel">Selected ODU / Combination</div><div class="rvalue" id="out-oduSelected">–</div></div>
+      </div>
+      <div id="odu-badge"></div>
+      <div class="footnote" style="margin:10px 0 0;">Combination ratio (indoor connected ÷ outdoor rated capacity) typically runs 100–130%, relying on diversity since not every zone peaks simultaneously. Higher ratios save on outdoor unit cost but reduce simultaneous full-load capacity across all zones — confirm against the load profile and the manufacturer's allowed ratio range for the selected model.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: PIPING & INSTALLATION CHECKS -->
+  <div class="section">
+    <div class="sec-head"><span class="sec-num">03</span><span class="sec-name">Piping &amp; Installation Constraints</span></div>
+    <div class="sec-body">
+      <div class="input-grid">
+        <div class="field"><label>Total Equivalent Piping Length</label><input id="totalPipeLen" type="number" step="any" value="150"><span class="unit">m</span></div>
+        <div class="field"><label>Farthest Branch Length</label><input id="farthestBranch" type="number" step="any" value="60"><span class="unit">m</span></div>
+        <div class="field"><label>ODU – IDU Height Difference</label><input id="heightDiff" type="number" step="any" value="20"><span class="unit">m (+ODU above)</span></div>
+        <div class="field"><label>IDU – IDU Height Difference</label><input id="iduHeightDiff" type="number" step="any" value="0"><span class="unit">m</span></div>
+      </div>
+      <div class="check-grid" id="check-grid"></div>
+      <div class="footnote" style="margin:12px 0 0;">Reference ranges below are typical across major VRF/VRV product lines, not a specific manufacturer's exact limits — always confirm the precise figures for the selected model and pipe sizing in the manufacturer's design/selection software before finalizing piping routes.</div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-head">Selection Summary</div>
+    <div class="spec-grid">
+      <div class="spec-cell"><div class="lbl">Total IDU Connected</div><div class="val" id="spec-idu">–<small> HP</small></div></div>
+      <div class="spec-cell"><div class="lbl">Required ODU Capacity</div><div class="val" id="spec-odu">–<small> HP</small></div></div>
+      <div class="spec-cell"><div class="lbl">Combination Ratio</div><div class="val" id="spec-ratio">–<small> %</small></div></div>
+      <div class="spec-cell"><div class="lbl">Number of Zones</div><div class="val" id="spec-zones">–</div></div>
+      <div class="spec-cell"><div class="lbl">Total Piping Length</div><div class="val" id="spec-pipe">–<small> m</small></div></div>
+      <div class="spec-cell"><div class="lbl">Height Difference</div><div class="val" id="spec-height">–<small> m</small></div></div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    <b>Note —</b> This tool applies generic, industry-standard VRF sizing conventions (combination ratio, standard capacity steps, typical piping limits) to frame equipment selection and flag installation constraints early. It is not tied to any specific manufacturer's proprietary selection software or exact piping de-rating curves — those vary by brand and model. Final outdoor/indoor unit models, refrigerant pipe sizing, and exact allowable piping lengths must be confirmed in your chosen manufacturer's official selection tool before finalizing the design.
+  </div>
+
+</div>
+
+<script>
+const IDU_STEPS_HP = [0.8, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0];
+const ODU_STEPS_HP = [8,10,12,14,16,18,20,22,24,26,28,30];
+const HP_TO_KW = 2.8;
+
+function fmt(n, d){ d = d===undefined?2:d; return (isFinite(n)?n:0).toLocaleString('en-IN', {minimumFractionDigits:d, maximumFractionDigits:d}); }
+
+function nearestStep(value, steps){
+  for(const s of steps){ if(s >= value) return s; }
+  return steps[steps.length-1];
+}
+
+function buildZoneRow(name, area, loadFactor){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="col-sn"></td>
+    <td class="col-desc"><input type="text" value="${name}"></td>
+    <td class="col-num"><input type="number" class="area-input" min="0" step="any" value="${area}"></td>
+    <td class="col-num"><input type="number" class="lf-input" min="0" step="any" value="${loadFactor}"></td>
+    <td class="col-amt" data-zoneKW>0.00</td>
+    <td class="col-amt" data-zoneHP>0.00</td>
+    <td class="col-del"><button onclick="removeZoneRow(this)">✕</button></td>
+  `;
+  tr.querySelectorAll('input').forEach(inp => inp.addEventListener('input', recalcAll));
+  return tr;
+}
+function renumberZones(){ document.querySelectorAll('#zone-body tr').forEach((tr,i) => tr.querySelector('.col-sn').textContent = i+1); }
+function addZoneRow(){ document.getElementById('zone-body').appendChild(buildZoneRow('New zone', 50, 150)); renumberZones(); recalcAll(); }
+function removeZoneRow(btn){ btn.closest('tr').remove(); renumberZones(); recalcAll(); }
+
+function recalcAll(){
+  // Section 1
+  let totalKW = 0, totalHP = 0, zoneCount = 0;
+  document.querySelectorAll('#zone-body tr').forEach(tr => {
+    const area = parseFloat(tr.querySelector('.area-input').value) || 0;
+    const lf = parseFloat(tr.querySelector('.lf-input').value) || 0;
+    const kw = (area * lf) / 1000;
+    const hpNeeded = kw / HP_TO_KW;
+    const suggestedHP = hpNeeded > 0 ? nearestStep(hpNeeded, IDU_STEPS_HP) : 0;
+    tr.querySelector('[data-zoneKW]').textContent = fmt(kw);
+    tr.querySelector('[data-zoneHP]').textContent = fmt(suggestedHP,1);
+    totalKW += kw;
+    totalHP += suggestedHP;
+    zoneCount++;
+  });
+  document.getElementById('zone-kw-subtotal').textContent = fmt(totalKW) + ' kW';
+  document.getElementById('zone-hp-subtotal').textContent = fmt(totalHP,1) + ' HP';
+
+  // Section 2
+  const combRatio = parseFloat(document.getElementById('combRatio').value) || 100;
+  const oduRequired = totalHP / (combRatio/100);
+  let oduSelectedText = '–';
+  if(oduRequired > 0){
+    if(oduRequired <= ODU_STEPS_HP[ODU_STEPS_HP.length-1]){
+      const sel = nearestStep(oduRequired, ODU_STEPS_HP);
+      oduSelectedText = sel + ' HP (single module)';
+    } else {
+      const numModules = Math.ceil(oduRequired / ODU_STEPS_HP[ODU_STEPS_HP.length-1]);
+      const perModule = nearestStep(oduRequired/numModules, ODU_STEPS_HP);
+      oduSelectedText = numModules + ' × ' + perModule + ' HP (combined modules)';
+    }
+  }
+  document.getElementById('out-iduTotal').innerHTML = fmt(totalHP,1) + '<small> HP</small>';
+  document.getElementById('out-oduRequired').innerHTML = fmt(oduRequired,1) + '<small> HP</small>';
+  document.getElementById('out-oduSelected').textContent = oduSelectedText;
+
+  const oduBadge = document.getElementById('odu-badge');
+  if(combRatio > 130){
+    oduBadge.innerHTML = '<span class="badge warn">Combination ratio above 130% — verify the selected model allows this and check simultaneous full-load performance</span>';
+  } else if(combRatio >= 100){
+    oduBadge.innerHTML = '<span class="badge good">Combination ratio within typical 100–130% range</span>';
+  } else {
+    oduBadge.innerHTML = '<span class="badge warn">Combination ratio below 100% — outdoor unit oversized relative to connected indoor load</span>';
+  }
+
+  // Section 3 checks
+  const totalPipeLen = parseFloat(document.getElementById('totalPipeLen').value) || 0;
+  const farthestBranch = parseFloat(document.getElementById('farthestBranch').value) || 0;
+  const heightDiff = parseFloat(document.getElementById('heightDiff').value) || 0;
+  const iduHeightDiff = parseFloat(document.getElementById('iduHeightDiff').value) || 0;
+
+  const checks = [
+    {label:'Total Piping Length', value: totalPipeLen, unit:'m', typicalMax: 300, note:'typical max ~300m (up to 1000m on some premium models)'},
+    {label:'Farthest Branch Length', value: farthestBranch, unit:'m', typicalMax: 90, note:'typical max ~90m (some models up to 165m)'},
+    {label:'ODU–IDU Height Difference', value: Math.abs(heightDiff), unit:'m', typicalMax: 50, note:'typical max ~50m ODU above, ~40m ODU below'},
+    {label:'IDU–IDU Height Difference', value: Math.abs(iduHeightDiff), unit:'m', typicalMax: 15, note:'typical max ~15m between indoor units'},
+  ];
+
+  const grid = document.getElementById('check-grid');
+  grid.innerHTML = '';
+  checks.forEach(c => {
+    const within = c.value <= c.typicalMax;
+    const div = document.createElement('div');
+    div.className = 'check-item';
+    div.innerHTML = `
+      <div class="ci-label">${c.label}</div>
+      <div class="ci-value">${fmt(c.value,1)} ${c.unit} <span style="color:var(--steel); font-weight:400;">/ ${c.typicalMax}${c.unit} ref.</span></div>
+      <span class="badge ${within?'good':'warn'}">${within ? 'Within typical range' : 'Exceeds typical range — verify model limit'}</span>
+    `;
+    grid.appendChild(div);
+  });
+
+  // Summary
+  document.getElementById('spec-idu').innerHTML = fmt(totalHP,1) + '<small> HP</small>';
+  document.getElementById('spec-odu').innerHTML = fmt(oduRequired,1) + '<small> HP</small>';
+  document.getElementById('spec-ratio').innerHTML = fmt(combRatio,0) + '<small> %</small>';
+  document.getElementById('spec-zones').textContent = zoneCount;
+  document.getElementById('spec-pipe').innerHTML = fmt(totalPipeLen,0) + '<small> m</small>';
+  document.getElementById('spec-height').innerHTML = fmt(heightDiff,0) + '<small> m</small>';
+}
+
+// Init
+[
+  ['Cabin / Office zone', 40, 130],
+  ['Open workspace', 120, 150],
+  ['Conference room', 30, 180],
+  ['Reception / Lobby', 50, 120],
+].forEach(([name, area, lf]) => document.getElementById('zone-body').appendChild(buildZoneRow(name, area, lf)));
+renumberZones();
+
+['combRatio','totalPipeLen','farthestBranch','heightDiff','iduHeightDiff'].forEach(id => {
+  document.getElementById(id).addEventListener('input', recalcAll);
+});
+
+recalcAll();
+</script>
+
+</body>
+</html>
